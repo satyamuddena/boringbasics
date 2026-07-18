@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/*  BORING BASICS theme — dark-first, vivid orange and warm off-white */
+/* ------------------------------------------------------------------ */
+@theme {
+  --color-ink: var(--brand-background, #0a0a0b); /* page base */
+  --color-ink-soft: #121214; /* raised surfaces */
+  --color-ink-card: #18181b; /* cards */
+  --color-line: #27272a; /* hairline borders */
+  --color-muted: #a1a1aa; /* secondary text */
+  --color-fg: var(--brand-foreground, #f4f4f5); /* primary text */
+
+  --color-accent: var(--brand-accent, #ff5a0a);
+  --color-accent-soft: color-mix(in srgb, var(--brand-accent, #ff5a0a) 78%, white);
+  --color-accent-deep: color-mix(in srgb, var(--brand-accent, #ff5a0a) 78%, black);
+
+  /* Semantic status colors (flip with theme for contrast) */
+  --color-ok: #4ade80;
+  --color-warn: #facc15;
+  --color-bad: #f87171;
+
+  --font-display: var(--font-display), "Arial Narrow", sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--brand-accent, #ff5a0a) 40%, transparent),
+    0 12px 40px -12px color-mix(in srgb, var(--brand-accent, #ff5a0a) 50%, transparent);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Light mode — token overrides only; components are theme-agnostic.  */
+/*  Toggled via .light on <html> (see ThemeToggle + root layout).      */
+/* ------------------------------------------------------------------ */
+.light {
+  color-scheme: light;
+
+  --color-ink: #faf8f5; /* warm paper base */
+  --color-ink-soft: #f1eee9; /* raised surfaces */
+  --color-ink-card: #ffffff; /* cards */
+  --color-line: #e5e1da; /* hairline borders */
+  --color-muted: #67635c; /* secondary text */
+  --color-fg: #171512; /* primary text */
+
+  --color-accent-soft: color-mix(in srgb, var(--brand-accent, #ff5a0a) 78%, black);
+
+  --color-ok: #15803d;
+  --color-warn: #a16207;
+  --color-bad: #b91c1c;
+
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--brand-accent, #ff5a0a) 35%, transparent),
+    0 12px 32px -14px color-mix(in srgb, var(--brand-accent, #ff5a0a) 45%, transparent);
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem; /* offset for sticky header on anchor jumps */
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Display headings */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+  line-height: 0.95;
+}
+
+/* Thin custom scrollbar to match the dark aesthetic */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-ink);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-deep);
+}
+
+/* Respect reduced-motion for all the scroll/counter animation */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Utility: subtle radial accent glow used behind hero/section headers */
+.accent-radial {
+  background-image: radial-gradient(
+    60% 60% at 50% 0%,
+    rgba(255, 87, 34, 0.18) 0%,
+    rgba(255, 87, 34, 0) 70%
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Hero motion — continuous, decorative animations.                  */
+/*  All are neutralized by the prefers-reduced-motion guard above.    */
+/* ------------------------------------------------------------------ */
+
+/* Slow, imperceptible zoom on the background video / hero media */
+@keyframes ken-burns {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.07);
+  }
+}
+.animate-ken-burns {
+  animation: ken-burns 22s ease-in-out infinite alternate;
+}
+
+/* Gentle vertical bob for floating credential badges (stagger via --float-delay) */
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.animate-float {
+  animation: hero-float 5s ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 87, 34, 0);
+  }
+  50% {
+    box-shadow: 0 0 32px 4px rgba(255, 87, 34, 0.35);
+  }
+}
+.animate-pulse-glow {
+  border-radius: 9999px;
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes scroll-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(7px);
+    opacity: 1;
+  }
+}
+.animate-scroll-cue {
+  animation: scroll-bounce 1.8s ease-in-out infinite;
+}

@@ -1,0 +1,60 @@
+# Render blueprint — deploys Boring Basics as a Docker web service with a
+# persistent disk for the SQLite database + uploaded images.
+#
+# Setup: push to GitHub → Render dashboard → New → Blueprint → pick this repo.
+# Render prompts for the sync:false env vars on first deploy.
+#
+# Note: the disk requires a paid instance (Starter). With a disk attached the
+# service runs as a single instance — correct for SQLite.
+services:
+  - type: web
+    name: boring-basics
+    runtime: docker
+    plan: starter
+    healthCheckPath: /
+    autoDeploy: true
+    disk:
+      name: boring-basics-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATA_DIR
+        value: /data
+      # Admin login — created automatically on first boot.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Canonical site URL (e.g. https://boringbasics.in) for SEO + newsletter links.
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      # Optional — email (enquiries/newsletters log to console until set).
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: LEAD_TO_EMAIL
+        sync: false
+      # Razorpay — consultation payment (pay step degrades gracefully until set).
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      # Optional — verifies Calendly scheduled-event URIs before marking booked.
+      - key: CALENDLY_ACCESS_TOKEN
+        sync: false
+      # Optional — Twilio WhatsApp trainer booking notifications.
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+      - key: TWILIO_WHATSAPP_CONTENT_SID
+        sync: false
+      - key: TWILIO_WHATSAPP_TO
+        sync: false

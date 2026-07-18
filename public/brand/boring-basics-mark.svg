@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 174 108" role="img" aria-labelledby="title">
+  <title id="title">Boring Basics</title>
+  <rect width="174" height="108" rx="12" fill="#050505"/>
+  <path fill="#F7F2EC" d="M14 12h43c18 0 29 9 29 22 0 8-4 14-12 18 10 4 15 11 15 21 0 15-12 23-32 23H14V12Zm19 15v18h23c7 0 11-3 11-9s-4-9-11-9H33Zm0 34v20h25c8 0 12-3 12-10 0-6-4-10-12-10H33Z"/>
+  <path fill="#FF5A0A" d="M94 12h43c18 0 29 9 29 22 0 8-4 14-12 18 10 4 15 11 15 21 0 15-12 23-32 23H94V12Zm19 15v18h23c7 0 11-3 11-9s-4-9-11-9h-23Zm0 34v20h25c8 0 12-3 12-10 0-6-4-10-12-10h-25Z"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke="#050505" stroke-width="5" d="M27 53h11"/>
+    <rect x="37" y="45" width="7" height="16" rx="2" fill="#050505" stroke="#F7F2EC" stroke-width="2"/>
+    <rect x="46" y="39" width="8" height="28" rx="2" fill="#050505" stroke="#F7F2EC" stroke-width="2"/>
+    <rect x="56" y="34" width="9" height="38" rx="2" fill="#050505" stroke="#F7F2EC" stroke-width="2"/>
+    <path stroke="#050505" stroke-width="4" d="M65 53h13"/>
+    <path stroke="#FF5A0A" stroke-width="4" d="M65 53h13l5-9 6 22 5-35"/>
+    <path stroke="#050505" stroke-width="4" d="M94 31l9 29 6-16 6 9h40"/>
+  </g>
+</svg>

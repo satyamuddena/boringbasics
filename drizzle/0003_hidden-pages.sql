@@ -1,0 +1,1 @@
+ALTER TABLE `site_settings` ADD `hidden_pages_json` text DEFAULT '[]' NOT NULL;

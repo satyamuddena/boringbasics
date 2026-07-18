@@ -1,0 +1,1 @@
+ALTER TABLE `trainer` ADD `show_whatsapp` integer DEFAULT false NOT NULL;

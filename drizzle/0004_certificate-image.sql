@@ -1,0 +1,1 @@
+ALTER TABLE `trainer` ADD `certificate_image` text;

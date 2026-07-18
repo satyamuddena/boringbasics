@@ -1,0 +1,2 @@
+ALTER TABLE `site_settings` ADD `hero_headline` text DEFAULT 'Build Better *Health* — Inside and Out.' NOT NULL;--> statement-breakpoint
+ALTER TABLE `site_settings` ADD `about_heading` text DEFAULT 'Coaching that''s personalized, *science-based* & sustainable.' NOT NULL;

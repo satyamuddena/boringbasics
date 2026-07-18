@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 120" role="img" aria-labelledby="title desc">
+  <title id="title">Boring Basics</title>
+  <desc id="desc">BB monogram with a dumbbell and heartbeat line</desc>
+  <rect width="560" height="120" rx="16" fill="#050505"/>
+  <g transform="translate(12 14) scale(.82)">
+    <path fill="#F7F2EC" d="M14 12h43c18 0 29 9 29 22 0 8-4 14-12 18 10 4 15 11 15 21 0 15-12 23-32 23H14V12Zm19 15v18h23c7 0 11-3 11-9s-4-9-11-9H33Zm0 34v20h25c8 0 12-3 12-10 0-6-4-10-12-10H33Z"/>
+    <path fill="#FF5A0A" d="M94 12h43c18 0 29 9 29 22 0 8-4 14-12 18 10 4 15 11 15 21 0 15-12 23-32 23H94V12Zm19 15v18h23c7 0 11-3 11-9s-4-9-11-9h-23Zm0 34v20h25c8 0 12-3 12-10 0-6-4-10-12-10h-25Z"/>
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="#050505" stroke-width="5" d="M27 53h11"/><rect x="36" y="44" width="7" height="18" rx="2" fill="#050505" stroke="#F7F2EC" stroke-width="2.5"/><rect x="45" y="38" width="9" height="30" rx="2" fill="#050505" stroke="#F7F2EC" stroke-width="2.5"/><rect x="56" y="32" width="10" height="42" rx="2" fill="#050505" stroke="#F7F2EC" stroke-width="2.5"/><path stroke="#050505" stroke-width="5" d="M66 53h12"/><path stroke="#FF5A0A" stroke-width="4" d="M66 53h12l5-9 6 22 5-35"/><path stroke="#050505" stroke-width="4" d="M94 31l9 29 6-16 6 9h40"/></g>
+  </g>
+  <text x="160" y="65" fill="#F7F2EC" font-family="Arial,Helvetica,sans-serif" font-size="37" font-weight="800" letter-spacing="4">BORING</text>
+  <text x="345" y="65" fill="#FF5A0A" font-family="Arial,Helvetica,sans-serif" font-size="37" font-weight="800" letter-spacing="4">BASICS</text>
+  <text x="163" y="91" fill="#F7F2EC" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="700" letter-spacing="4">STOP LOOKING FOR </text>
+  <text x="356" y="91" fill="#FF5A0A" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="700" letter-spacing="4">MAGIC.</text>
+</svg>
