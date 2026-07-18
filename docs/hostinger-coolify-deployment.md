@@ -107,6 +107,9 @@ Save and deploy. Coolify creates the HTTPS certificate automatically. Do not use
 3. Visit `https://yourdomain.com`.
 4. Sign in at `https://yourdomain.com/admin` with `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 
+## At domains update as 
+https://boringbasics.fit,https://www.boringbasics.fit
+
 ## Backups
 
 Back up `/data/boring-basics` at least weekly. It is the only copy of the SQLite database and uploaded images.
