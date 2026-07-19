@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, gt, or } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { AdminCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, StatusPill } from "@/components/admin/ui";
 import { DeleteForm } from "@/components/admin/DeleteForm";
 import { smtpConfigured } from "@/lib/mail";
-import { sendNewsletterAction, deleteSubscriberAction } from "./actions";
+import { clearTestNotificationsAction, sendNewsletterAction, deleteSubscriberAction } from "./actions";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { NewsletterSendControls } from "@/components/admin/NewsletterSendButton";
 import { sanitizeRichText } from "@/lib/richText";
@@ -15,12 +15,13 @@ export const dynamic = "force-dynamic";
 export default async function NewsletterAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sent?: string; total?: string; failed?: string; error?: string; mode?: string; recipient?: string; tab?: string; q?: string; status?: string; source?: string; sort?: string }>;
+  searchParams: Promise<{ sent?: string; total?: string; failed?: string; error?: string; mode?: string; recipient?: string; cleared?: string; tab?: string; q?: string; status?: string; source?: string; sort?: string }>;
 }) {
   const admin = await requireAdmin();
-  const { sent, total, error, mode, recipient, tab = "compose", q = "", status = "", source = "", sort = "newest" } = await searchParams;
+  const { sent, total, error, mode, recipient, cleared, tab = "compose", q = "", status = "", source = "", sort = "newest" } = await searchParams;
   const activeTab = tab === "history" ? "history" : "compose";
-  const allSubscribers = getDb()
+  const db = getDb();
+  const allSubscribers = db
     .select()
     .from(t.subscribers)
     .orderBy(desc(t.subscribers.id))
@@ -43,11 +44,26 @@ export default async function NewsletterAdminPage({
       return b.id - a.id;
     });
   const active = allSubscribers.filter((s) => s.status === "subscribed").length;
+  const clearBoundary = activeTab === "history"
+    ? db
+        .select({ id: t.auditLog.id })
+        .from(t.auditLog)
+        .where(and(eq(t.auditLog.action, "newsletter_test_history_cleared"), eq(t.auditLog.entityType, "newsletter")))
+        .orderBy(desc(t.auditLog.id))
+        .limit(1)
+        .get()?.id ?? 0
+    : 0;
   const history = activeTab === "history"
-    ? getDb()
+    ? db
         .select()
         .from(t.auditLog)
-        .where(and(inArray(t.auditLog.action, ["newsletter_sent", "newsletter_test_sent"]), eq(t.auditLog.entityType, "newsletter")))
+        .where(and(
+          eq(t.auditLog.entityType, "newsletter"),
+          or(
+            eq(t.auditLog.action, "newsletter_sent"),
+            and(eq(t.auditLog.action, "newsletter_test_sent"), gt(t.auditLog.id, clearBoundary)),
+          ),
+        ))
         .orderBy(desc(t.auditLog.id))
         .limit(50)
         .all()
@@ -59,6 +75,18 @@ export default async function NewsletterAdminPage({
           }
         })
     : [];
+  const hasTestNotifications = activeTab === "history" && Boolean(
+    db
+      .select({ id: t.auditLog.id })
+      .from(t.auditLog)
+      .where(and(
+        eq(t.auditLog.entityType, "newsletter"),
+        eq(t.auditLog.action, "newsletter_test_sent"),
+        gt(t.auditLog.id, clearBoundary),
+      ))
+      .limit(1)
+      .get(),
+  );
 
   return (
     <>
@@ -69,6 +97,11 @@ export default async function NewsletterAdminPage({
           {mode === "test"
             ? `Test newsletter sent to ${recipient}.`
             : `Newsletter sent to ${sent} of ${total} subscriber${Number(total) === 1 ? "" : "s"}.`}
+        </p>
+      )}
+      {cleared && (
+        <p className="mb-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
+          All test notifications were cleared from Sent history. Broadcast history was not changed.
         </p>
       )}
       {error === "missing" && (
@@ -116,6 +149,16 @@ export default async function NewsletterAdminPage({
       {activeTab === "history" ? (
         <AdminCard title="Sent newsletters">
           <div className="space-y-3">
+            {hasTestNotifications && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-ink px-4 py-3">
+                <p className="text-sm text-muted">Remove all test deliveries from this history while keeping broadcasts.</p>
+                <DeleteForm
+                  action={clearTestNotificationsAction}
+                  label="Clear all test notifications"
+                  confirmText="Clear all test notifications from Sent history? Broadcast history will remain."
+                />
+              </div>
+            )}
             {history.map((entry) => {
               const body = entry.details.html ?? entry.details.paragraphs?.map((p) => `<p>${p}</p>`).join("") ?? "";
               return (

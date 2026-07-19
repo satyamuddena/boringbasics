@@ -9,6 +9,7 @@ import { str } from "@/lib/forms";
 import { sendNewsletter, sendNewsletterTest } from "@/lib/newsletter";
 import { richTextToPlainText, sanitizeRichText } from "@/lib/richText";
 import { isValidEmailAddress, parseNewsletterIntent } from "@/lib/newsletterForm";
+import { audit } from "@/lib/audit";
 
 function validHttpUrl(value: string): boolean {
   try {
@@ -77,4 +78,16 @@ export async function deleteSubscriberAction(id: number) {
     entityId: () => id,
   });
   redirect("/admin/newsletter");
+}
+
+/** Clears test-send history without deleting immutable audit records. */
+export async function clearTestNotificationsAction() {
+  const admin = await requireAdmin();
+  audit({
+    actor: admin.email,
+    action: "newsletter_test_history_cleared",
+    entityType: "newsletter",
+    after: { clearedAt: new Date().toISOString() },
+  });
+  redirect("/admin/newsletter?tab=history&cleared=1");
 }
