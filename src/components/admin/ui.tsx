@@ -15,16 +15,28 @@ export function AdminCard({ title, children }: { title?: string; children: React
 export function Field({
   label,
   hint,
+  tooltip,
   children,
 }: {
   label: string;
   hint?: string;
+  tooltip?: string;
   children: ReactNode;
 }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted">
         {label}
+        {tooltip && (
+          <span
+            tabIndex={0}
+            title={tooltip}
+            aria-label={`${label}: ${tooltip}`}
+            className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-muted/60 text-[10px] normal-case tracking-normal text-muted"
+          >
+            ?
+          </span>
+        )}
       </span>
       {children}
       {hint && <span className="mt-1 block text-xs text-muted/70">{hint}</span>}

@@ -145,6 +145,8 @@ export const siteSettings = sqliteTable("site_settings", {
   testPaymentEnabled: integer("test_payment_enabled", { mode: "boolean" }).notNull().default(false),
   /** Brand assets and visual identity, editable from the admin settings page. */
   logoPath: text("logo_path"),
+  /** Wide logo/wordmark rendered in newsletter and notification headers. */
+  notificationLogoPath: text("notification_logo_path"),
   iconPath: text("icon_path"),
   socialImagePath: text("social_image_path"),
   accentColor: text("accent_color").notNull().default("#ff5a0a"),

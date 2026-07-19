@@ -62,6 +62,22 @@ export default async function SettingsAdminPage({
           </div>
         </AdminCard>
 
+        <AdminCard title="Notification branding">
+          <div className="space-y-4">
+            <p className="text-sm leading-relaxed text-muted">
+              Upload the logo or wordmark used at the top of newsletters and other email notifications.
+              A transparent PNG with strong contrast on a dark background works best. If left empty,
+              notifications use the website header logo.
+            </p>
+            <ImageUploadField
+              name="notificationLogoPath"
+              label="Notification header logo"
+              kind="brandNotification"
+              defaultValue={site.notificationLogoPath}
+            />
+          </div>
+        </AdminCard>
+
         <AdminCard title="Site">
           <div className="space-y-4">
             <Field label="Site URL" hint="Canonical URL for SEO — e.g. https://boringbasics.in">

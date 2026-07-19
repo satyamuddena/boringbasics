@@ -99,6 +99,13 @@
       "when": 1784194200000,
       "tag": "0013_admin-branding",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1784432627414,
+      "tag": "0014_notification-branding",
+      "breakpoints": true
     }
   ]
 }

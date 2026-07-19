@@ -211,6 +211,8 @@ export const getSite = cache(async (): Promise<typeof fallback.site> => {
     url: validSiteUrl(settings?.siteUrl) || fallback.site.url,
     ogImage: settings?.socialImagePath || fallback.site.ogImage,
     logoPath: settings?.logoPath || fallback.site.logoPath,
+    notificationLogoPath:
+      settings?.notificationLogoPath || settings?.logoPath || fallback.site.notificationLogoPath,
     iconPath: settings?.iconPath || fallback.site.iconPath,
     accentColor: settings?.accentColor || fallback.site.accentColor,
     backgroundColor: settings?.backgroundColor || fallback.site.backgroundColor,

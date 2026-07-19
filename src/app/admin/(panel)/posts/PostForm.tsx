@@ -1,6 +1,7 @@
 import type { schema } from "@/db";
 import { AdminCard, Field, Input, Textarea, Checkbox, SubmitButton } from "@/components/admin/ui";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { savePostAction } from "./actions";
 
 type PostRow = typeof schema.posts.$inferSelect;
@@ -40,15 +41,18 @@ export function PostForm({ post }: { post?: PostRow }) {
           </Field>
         </div>
         <div className="mt-4 space-y-4">
-          <Field label="Excerpt">
+          <Field
+            label="Excerpt"
+            tooltip="A short summary shown on the blog listing, search previews, and social sharing cards. Aim for one or two clear sentences."
+          >
             <Textarea name="excerpt" defaultValue={post?.excerpt} required />
           </Field>
           <ImageUploadField name="coverImage" label="Cover image" kind="post" defaultValue={post?.coverImage ?? ""} />
           <Field
-            label="Body (Markdown)"
-            hint="Headings: ## Heading — Lists: - item — Bold: **text** — Links: [text](url) — Images: ![alt](/uploads/…)"
+            label="Body"
+            hint="Use the toolbar for headings, emphasis, lists and links. Existing Markdown is converted to editable text when first saved."
           >
-            <Textarea name="body" rows={18} defaultValue={post?.bodyMd} className="font-mono text-xs" />
+            <RichTextEditor name="body" defaultValue={post?.bodyMd} />
           </Field>
           <Checkbox name="isPublished" label="Published (visible on the site)" defaultChecked={post?.isPublished ?? false} />
           <div>

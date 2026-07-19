@@ -346,9 +346,10 @@ export const site = {
   title: `${trainer.brand} — ${trainer.tagline} | ${trainer.fullName}`,
   description: trainer.shortBio,
   /** Update to the live domain before launch. */
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://boringbasics.in",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://www.boringbasics.fit",
   ogImage: "/brand/boring-basics-primary.jpeg",
   logoPath: "/brand/boring-basics-mark-client.png",
+  notificationLogoPath: "/brand/boring-basics-logo.svg",
   iconPath: "/brand/boring-basics-mark-client.png",
   accentColor: "#ff5a0a",
   backgroundColor: "#0a0a0b",

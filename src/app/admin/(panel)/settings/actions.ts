@@ -86,6 +86,7 @@ export async function saveSettingsAction(formData: FormData) {
           ),
           testPaymentEnabled: formData.get("testPaymentEnabled") != null,
           logoPath: assetPath(formData, "logoPath"),
+          notificationLogoPath: assetPath(formData, "notificationLogoPath"),
           iconPath: assetPath(formData, "iconPath"),
           socialImagePath: assetPath(formData, "socialImagePath"),
           accentColor: color(formData, "accentColor", "#ff5a0a"),

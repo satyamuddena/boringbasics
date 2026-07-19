@@ -67,6 +67,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Explicit list markers for the TipTap admin editor. Tailwind's reset removes
+   native list styles, so this makes bullet and numbered lists consistent in Edge. */
+.rich-text-editor .ProseMirror ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  list-style: disc outside;
+}
+
+.rich-text-editor .ProseMirror ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  list-style: decimal outside;
+}
+
+.rich-text-editor .ProseMirror li {
+  display: list-item;
+}
+
 /* Display headings */
 .font-display {
   font-family: var(--font-display);

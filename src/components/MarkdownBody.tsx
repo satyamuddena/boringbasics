@@ -1,5 +1,6 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { isRichTextHtml, sanitizeRichText } from "@/lib/richText";
 
 /**
  * Styled markdown renderer for blog posts and event descriptions.
@@ -42,6 +43,14 @@ const components: Components = {
 };
 
 export function MarkdownBody({ source }: { source: string }) {
+  if (isRichTextHtml(source)) {
+    return (
+      <div
+        className="rich-text-body [&_a]:text-accent [&_a]:underline [&_blockquote]:my-6 [&_blockquote]:border-l-2 [&_blockquote]:border-accent [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted [&_h2]:mt-10 [&_h2]:font-display [&_h2]:text-3xl [&_h2]:uppercase [&_h3]:mt-8 [&_h3]:font-display [&_h3]:text-2xl [&_h3]:uppercase [&_li]:text-muted [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-6 [&_p]:mt-4 [&_p]:leading-relaxed [&_p]:text-muted [&_strong]:font-semibold [&_strong]:text-fg [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6"
+        dangerouslySetInnerHTML={{ __html: sanitizeRichText(source) }}
+      />
+    );
+  }
   return (
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
       {source}

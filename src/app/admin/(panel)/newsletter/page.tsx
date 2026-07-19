@@ -1,18 +1,25 @@
-import { desc } from "drizzle-orm";
+import Link from "next/link";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
-import { AdminCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, Textarea, StatusPill, SubmitButton } from "@/components/admin/ui";
+import { AdminCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, StatusPill } from "@/components/admin/ui";
 import { DeleteForm } from "@/components/admin/DeleteForm";
 import { smtpConfigured } from "@/lib/mail";
 import { sendNewsletterAction, deleteSubscriberAction } from "./actions";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { NewsletterSendControls } from "@/components/admin/NewsletterSendButton";
+import { sanitizeRichText } from "@/lib/richText";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewsletterAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sent?: string; total?: string; failed?: string; error?: string; q?: string; status?: string; source?: string; sort?: string }>;
+  searchParams: Promise<{ sent?: string; total?: string; failed?: string; error?: string; mode?: string; recipient?: string; tab?: string; q?: string; status?: string; source?: string; sort?: string }>;
 }) {
-  const { sent, total, failed, error, q = "", status = "", source = "", sort = "newest" } = await searchParams;
+  const admin = await requireAdmin();
+  const { sent, total, error, mode, recipient, tab = "compose", q = "", status = "", source = "", sort = "newest" } = await searchParams;
+  const activeTab = tab === "history" ? "history" : "compose";
   const allSubscribers = getDb()
     .select()
     .from(t.subscribers)
@@ -36,20 +43,58 @@ export default async function NewsletterAdminPage({
       return b.id - a.id;
     });
   const active = allSubscribers.filter((s) => s.status === "subscribed").length;
+  const history = activeTab === "history"
+    ? getDb()
+        .select()
+        .from(t.auditLog)
+        .where(and(inArray(t.auditLog.action, ["newsletter_sent", "newsletter_test_sent"]), eq(t.auditLog.entityType, "newsletter")))
+        .orderBy(desc(t.auditLog.id))
+        .limit(50)
+        .all()
+        .map((row) => {
+          try {
+            return { ...row, details: JSON.parse(row.afterJson ?? "{}") as { subject?: string; html?: string; paragraphs?: string[]; cta?: { label: string; url: string }; recipient?: string; test?: boolean; total?: number; sent?: number; failed?: number } };
+          } catch {
+            return { ...row, details: {} as { subject?: string; html?: string; paragraphs?: string[]; cta?: { label: string; url: string }; recipient?: string; test?: boolean; total?: number; sent?: number; failed?: number } };
+          }
+        })
+    : [];
 
   return (
     <>
       <AdminHeading title="Newsletter" />
 
-      {sent != null && (
+      {sent != null && !error && (
         <p className="mb-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
-          Newsletter sent to {sent} of {total} subscriber{Number(total) === 1 ? "" : "s"}
-          {Number(failed) > 0 ? ` (${failed} failed — check the server logs)` : ""}.
+          {mode === "test"
+            ? `Test newsletter sent to ${recipient}.`
+            : `Newsletter sent to ${sent} of ${total} subscriber${Number(total) === 1 ? "" : "s"}.`}
         </p>
       )}
       {error === "missing" && (
         <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">
           Subject and message are both required.
+        </p>
+      )}
+      {error === "invalid-cta" && (
+        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">
+          Add both a button label and a valid http(s) button link, or leave both fields blank.
+        </p>
+      )}
+      {error === "invalid-test-email" && (
+        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">Enter a valid test recipient email address.</p>
+      )}
+      {error === "invalid-action" && (
+        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">Choose either test delivery or broadcast delivery.</p>
+      )}
+      {error === "smtp_auth" && (
+        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">
+          SMTP login was rejected. Update <code>SMTP_USER</code> and <code>SMTP_PASS</code> with the mailbox credentials from your email provider, then restart the server.
+        </p>
+      )}
+      {error === "smtp_delivery" && (
+        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">
+          The email provider could not deliver the newsletter. Check the server log for the provider error.
         </p>
       )}
       {!smtpConfigured() && (
@@ -59,13 +104,50 @@ export default async function NewsletterAdminPage({
         </p>
       )}
 
+      <div className="mb-6 flex gap-2 border-b border-line">
+        <Link href="/admin/newsletter" className={`border-b-2 px-4 py-2 text-sm font-semibold ${activeTab === "compose" ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg"}`}>
+          Compose & subscribers
+        </Link>
+        <Link href="/admin/newsletter?tab=history" className={`border-b-2 px-4 py-2 text-sm font-semibold ${activeTab === "history" ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg"}`}>
+          Sent history
+        </Link>
+      </div>
+
+      {activeTab === "history" ? (
+        <AdminCard title="Sent newsletters">
+          <div className="space-y-3">
+            {history.map((entry) => {
+              const body = entry.details.html ?? entry.details.paragraphs?.map((p) => `<p>${p}</p>`).join("") ?? "";
+              return (
+                <details key={entry.id} className="rounded-xl border border-line bg-ink p-4">
+                  <summary className="cursor-pointer list-none pr-6">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-semibold">{entry.details.subject ?? "Newsletter"}</span>
+                      {entry.details.test && <StatusPill value="test" />}
+                      <span className="text-xs text-muted">{new Date(entry.at).toLocaleString("en-IN")}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted">
+                      Sent by {entry.actor} · {entry.details.sent ?? 0} of {entry.details.total ?? 0} delivered
+                      {entry.details.recipient ? ` · ${entry.details.recipient}` : ""}
+                      {entry.details.failed ? ` · ${entry.details.failed} failed` : ""}
+                    </p>
+                  </summary>
+                  {body && <div className="mt-4 border-t border-line pt-4 [&_a]:text-accent [&_a]:underline [&_p]:mb-3 [&_p]:text-sm [&_p]:leading-relaxed [&_strong]:text-fg" dangerouslySetInnerHTML={{ __html: sanitizeRichText(body) }} />}
+                  {entry.details.cta && <a className="mt-2 inline-block text-sm font-semibold text-accent underline" href={entry.details.cta.url} target="_blank" rel="noopener noreferrer">{entry.details.cta.label} →</a>}
+                </details>
+              );
+            })}
+            {history.length === 0 && <p className="py-8 text-center text-sm text-muted">No newsletters have been recorded yet. Future sends will appear here.</p>}
+          </div>
+        </AdminCard>
+      ) : <>
       <AdminCard title={`Send a newsletter (${active} active subscriber${active === 1 ? "" : "s"})`}>
         <form action={sendNewsletterAction} className="space-y-4">
           <Field label="Subject">
             <Input name="subject" required placeholder="e.g. 5 habits that make fat loss stick" />
           </Field>
-          <Field label="Message" hint="Plain text — leave a blank line between paragraphs.">
-            <Textarea name="message" rows={8} required />
+          <Field label="Message" hint="Use the toolbar for headings, emphasis, lists and links. Pasted text is kept plain for a consistent email layout.">
+            <RichTextEditor name="body" minHeight="16rem" />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Button label (optional)" hint='e.g. "Read the full post"'>
@@ -78,7 +160,10 @@ export default async function NewsletterAdminPage({
           <p className="text-xs text-muted/70">
             Every email is sent individually with the subscriber&apos;s own unsubscribe link.
           </p>
-          <SubmitButton>Send newsletter</SubmitButton>
+          <Field label="Test recipient" hint="A test goes only to this address and appears in Sent history. It does not change your subscriber list.">
+            <Input name="testEmail" type="email" defaultValue={admin.email} placeholder="you@example.com" />
+          </Field>
+          <NewsletterSendControls subscriberCount={active} />
         </form>
       </AdminCard>
 
@@ -143,6 +228,7 @@ export default async function NewsletterAdminPage({
           )}
         </AdminTable>
       </div>
+      </>}
     </>
   );
 }

@@ -22,6 +22,11 @@ export const IMAGE_SPECS = {
   },
   post: { maxW: 1600, maxH: 900, label: "Best: 1600×900 (16:9)" },
   brandLogo: { maxW: 1600, maxH: 600, label: "Best: transparent PNG, 1600×600 or wider" },
+  brandNotification: {
+    maxW: 1200,
+    maxH: 360,
+    label: "Best: transparent PNG, up to 1200×360 with logo and wordmark",
+  },
   brandIcon: { maxW: 512, maxH: 512, label: "Best: square PNG, 512×512" },
   brandSocial: { maxW: 1200, maxH: 630, label: "Best: 1200×630 social sharing image" },
 } as const satisfies Record<string, ImageSpec>;

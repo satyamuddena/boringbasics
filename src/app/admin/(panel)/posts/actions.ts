@@ -7,6 +7,7 @@ import { auditedMutation } from "@/lib/admin";
 import { str, num, bool, csv, optNum, slugify } from "@/lib/forms";
 import { getSite } from "@/lib/content";
 import { sendNewsletter } from "@/lib/newsletter";
+import { normalizeBlogBody } from "@/lib/blogContent";
 
 /** "Email subscribers about this post" — only for published posts. */
 async function notifySubscribers(values: ReturnType<typeof parse>, adminEmail: string) {
@@ -34,7 +35,7 @@ function parse(formData: FormData) {
     readTimeMin: optNum(formData, "readTimeMin"),
     publishedAt: str(formData, "publishedAt") || now,
     isPublished: bool(formData, "isPublished"),
-    bodyMd: String(formData.get("body") ?? ""),
+    bodyMd: normalizeBlogBody(String(formData.get("body") ?? "")),
     updatedAt: now,
   };
 }
