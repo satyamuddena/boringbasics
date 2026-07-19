@@ -21,6 +21,10 @@ const inter = Inter({
 
 export async function generateMetadata(): Promise<Metadata> {
   const [site, trainer] = await Promise.all([getSite(), getTrainer()]);
+  // Uploaded assets use content-hashed filenames. The query also ensures the
+  // bundled fallback does not remain stuck in browsers' long-lived favicon cache.
+  const iconVersion = encodeURIComponent(site.iconPath.split("/").pop() || "brand-icon");
+  const iconUrl = `${site.iconPath}${site.iconPath.includes("?") ? "&" : "?"}v=${iconVersion}`;
   return {
     metadataBase: new URL(site.url),
     title: {
@@ -33,8 +37,8 @@ export async function generateMetadata(): Promise<Metadata> {
     creator: trainer.fullName,
     applicationName: trainer.brand,
     icons: {
-      icon: site.iconPath,
-      shortcut: site.iconPath,
+      icon: iconUrl,
+      shortcut: iconUrl,
     },
     alternates: { canonical: "/" },
     robots: { index: true, follow: true },
