@@ -1,6 +1,7 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb, schema as t } from "@/db";
 import { auditedMutation } from "@/lib/admin";
@@ -42,6 +43,8 @@ export async function saveTestimonialAction(formData: FormData) {
         db.select().from(t.testimonials).where(eq(t.testimonials.id, Number(r.lastInsertRowid))).get(),
     });
   }
+  revalidatePath("/");
+  revalidatePath("/testimonials");
   redirect("/admin/testimonials");
 }
 
@@ -55,5 +58,7 @@ export async function deleteTestimonialAction(id: number) {
     run: () => db.delete(t.testimonials).where(eq(t.testimonials.id, id)).run(),
     entityId: () => id,
   });
+  revalidatePath("/");
+  revalidatePath("/testimonials");
   redirect("/admin/testimonials");
 }

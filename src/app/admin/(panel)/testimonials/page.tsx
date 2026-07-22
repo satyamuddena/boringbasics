@@ -60,8 +60,18 @@ export default async function TestimonialsAdminPage({
               <Input name="displayOrder" type="number" defaultValue={editing?.displayOrder ?? 0} />
             </Field>
           </div>
-          <Field label="Quote">
-            <Textarea name="quote" defaultValue={editing?.quote} required />
+          <Field
+            label="Quote"
+            tooltip="The complete quote is shown on the testimonials page. The public card and this editor grow automatically for longer testimonials."
+            hint="Full quote is displayed on the frontend; longer cards resize automatically."
+          >
+            <Textarea
+              name="quote"
+              rows={5}
+              defaultValue={editing?.quote}
+              className="min-h-36 [field-sizing:content] resize-y"
+              required
+            />
           </Field>
           <ImageUploadField name="image" label="Client photo (optional)" kind="testimonial" defaultValue={editing?.image ?? ""} />
           <Checkbox name="featured" label="Featured on homepage" defaultChecked={editing?.featured ?? false} />
