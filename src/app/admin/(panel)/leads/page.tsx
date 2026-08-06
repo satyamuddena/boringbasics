@@ -1,28 +1,39 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { AdminHeading, AdminListControls, AdminTable, Field, Input, Select, StatusPill } from "@/components/admin/ui";
+import { BookingStageSummary } from "@/components/admin/BookingProgressBar";
+import { BookingTabs, type BookingTab } from "@/components/admin/BookingTabs";
 import { setLeadStatusAction } from "./actions";
 import { BookingDetails, type NotifyRecord } from "./BookingDetails";
+import { WhatsAppButton } from "./WhatsAppButton";
+import {
+  ageLabel,
+  bookingProgress,
+  dateTime,
+  inBookingTab,
+  type BookingTabKey,
+} from "@/lib/bookingProgress";
+import { syncStaleCalendlyEvents } from "@/lib/calendlySync";
 import { getTrainer } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
 
-const STAGE_LABEL: Record<string, string> = {
-  details: "Details",
-  paid: "Paid",
-  booked: "Booked",
+/** What an empty tab should say — silence on the busiest tab is good news. */
+const EMPTY_TAB: Record<string, string> = {
+  upcoming: "No calls coming up.",
+  needs: "Nothing is waiting on you. All caught up.",
+  unpaid: "Nobody is stuck at the payment step.",
+  notime: "Everyone who paid has picked a time.",
+  closed: "You have not closed any bookings yet.",
+  all: "No bookings yet.",
 };
 
-function formatSlot(value: string) {
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "long",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "Asia/Kolkata",
-  }).format(new Date(value));
-}
+/** Plain words for the trainer's own follow-up state. */
+const FOLLOWUP_LABEL: Record<string, string> = {
+  new: "Not contacted",
+  contacted: "Contacted",
+  closed: "Closed",
+};
 
 /**
  * Latest notification result per lead per audience. Read from the audit log so
@@ -53,18 +64,6 @@ function loadNotifications(): Map<number, Partial<Record<"trainer" | "customer",
   return byLead;
 }
 
-function minutesSince(value: string) {
-  return Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
-}
-
-function ageLabel(value: string) {
-  const mins = minutesSince(value);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
-
 function whatsappHref(phone: string, text: string) {
   return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
 }
@@ -74,9 +73,8 @@ export default async function LeadsAdminPage({
 }: {
   searchParams: Promise<{
     q?: string;
-    stage?: string;
+    tab?: string;
     status?: string;
-    followup?: string;
     sort?: string;
     waLead?: string;
     waStatus?: string;
@@ -86,9 +84,8 @@ export default async function LeadsAdminPage({
 }) {
   const {
     q = "",
-    stage = "",
+    tab = "upcoming",
     status = "",
-    followup = "",
     sort = "newest",
     waLead = "",
     waStatus = "",
@@ -96,70 +93,69 @@ export default async function LeadsAdminPage({
     waMessage = "",
   } = await searchParams;
   const trainer = await getTrainer();
+  // Calendly never notifies us, so re-read any booking whose slot we are missing
+  // or have not checked recently, then load the healed rows.
+  await syncStaleCalendlyEvents(getDb().select().from(t.leads).all());
   const allLeads = getDb().select().from(t.leads).orderBy(desc(t.leads.id)).all();
   const notifications = loadNotifications();
   const query = q.trim().toLowerCase();
 
-  // Funnel counts for the analytics cards.
-  const count = (stage: string) => allLeads.filter((l) => l.stage === stage).length;
-  const paid = count("paid");
-  const booked = count("booked");
-  const started = allLeads.length;
-  const staleDetails = allLeads.filter((l) => l.stage === "details" && minutesSince(l.createdAt) >= 30).length;
-  const paidPending = allLeads.filter((l) => l.stage === "paid").length;
-  const conversion = started ? Math.round((booked / started) * 100) : 0;
-  const leads = allLeads
-    .filter((l) => {
-      const needsDetailsFollowup = l.stage === "details" && minutesSince(l.createdAt) >= 30;
-      const needsSlotFollowup = l.stage === "paid";
-      if (stage && l.stage !== stage) return false;
-      if (status && l.status !== status) return false;
-      if (followup === "needs" && !needsDetailsFollowup && !needsSlotFollowup) return false;
-      if (!query) return true;
-      return [
-        l.id,
-        l.name,
-        l.whatsapp,
-        l.email,
-        l.goal,
-        l.level,
-        l.message,
-        l.stage,
-        l.status,
-      ]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(query));
-    })
-    .sort((a, b) => {
-      if (sort === "oldest") return a.id - b.id;
-      if (sort === "name") return a.name.localeCompare(b.name);
-      if (sort === "stage") return a.stage.localeCompare(b.stage) || b.id - a.id;
-      if (sort === "status") return a.status.localeCompare(b.status) || b.id - a.id;
-      return b.id - a.id;
-    });
-  const funnel = [
-    { label: "Details captured", value: started },
-    { label: "Paid", value: paid + booked },
-    { label: "Booked", value: booked },
-    { label: "Needs follow-up", value: staleDetails + paidPending },
+  // One clock for the whole render, so every row agrees on "30 minutes ago".
+  // Safe here: this page is force-dynamic, so it renders once per request on the
+  // server and never re-renders on the client.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const progressFor = new Map(allLeads.map((l) => [l.id, bookingProgress(l, now)]));
+
+  // Search and the contacted filter narrow everything, including the tab counts,
+  // so a filtered view can't advertise bookings it isn't going to show.
+  const matching = allLeads.filter((l) => {
+    if (status && l.status !== status) return false;
+    if (!query) return true;
+    return [l.id, l.name, l.whatsapp, l.email, l.goal, l.level, l.message, l.stage, l.status]
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(query));
+  });
+
+  const leadsIn = (key: BookingTabKey) =>
+    matching.filter((l) => inBookingTab(key, l, progressFor.get(l.id)!, now));
+
+  const href = (key: string) => {
+    const params = new URLSearchParams();
+    if (key !== "upcoming") params.set("tab", key);
+    if (q) params.set("q", q);
+    if (status) params.set("status", status);
+    if (sort !== "newest") params.set("sort", sort);
+    const qs = params.toString();
+    return qs ? `/admin/leads?${qs}` : "/admin/leads";
+  };
+
+  const TAB_LABELS: { key: BookingTabKey; label: string; urgent?: boolean }[] = [
+    { key: "upcoming", label: "Upcoming" },
+    { key: "needs", label: "Needs you", urgent: true },
+    { key: "unpaid", label: "Never paid" },
+    { key: "notime", label: "No time picked" },
+    { key: "closed", label: "Closed" },
+    { key: "all", label: "All" },
   ];
+  const tabs: BookingTab[] = TAB_LABELS.map((t) => ({
+    ...t,
+    count: leadsIn(t.key).length,
+    href: href(t.key),
+  }));
+
+  const activeTab: BookingTabKey = TAB_LABELS.find((t) => t.key === tab)?.key ?? "upcoming";
+  const leads = leadsIn(activeTab).sort((a, b) => {
+    if (sort === "oldest") return a.id - b.id;
+    if (sort === "name") return a.name.localeCompare(b.name);
+    if (sort === "stage") return a.stage.localeCompare(b.stage) || b.id - a.id;
+    if (sort === "status") return a.status.localeCompare(b.status) || b.id - a.id;
+    return b.id - a.id;
+  });
 
   return (
     <>
       <AdminHeading title="Bookings" />
-
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {funnel.map((f) => (
-          <div key={f.label} className="rounded-2xl border border-line bg-ink-card p-5">
-            <p className="font-display text-4xl text-accent">{f.value}</p>
-            <p className="mt-1 text-sm text-muted">{f.label}</p>
-          </div>
-        ))}
-      </div>
-      <p className="mb-4 text-sm text-muted">
-        Booked / started: {conversion}%. Follow up on details-only leads older than 30 minutes
-        and paid leads that have not picked a slot.
-      </p>
 
       {waLead && (
         <div
@@ -180,21 +176,15 @@ export default async function LeadsAdminPage({
       )}
 
       <AdminListControls resetHref="/admin/leads">
+        {/* Applying a filter must not throw you back to the first tab. */}
+        <input type="hidden" name="tab" value={activeTab} />
         <Field label="Search">
           <Input name="q" defaultValue={q} placeholder="Name, phone, email, goal…" />
         </Field>
-        <Field label="Stage">
-          <Select name="stage" defaultValue={stage}>
-            <option value="">All stages</option>
-            <option value="details">Details</option>
-            <option value="paid">Paid</option>
-            <option value="booked">Booked</option>
-          </Select>
-        </Field>
-        <Field label="Status">
+        <Field label="Have you contacted them" tooltip="Your own follow-up, not the customer's progress.">
           <Select name="status" defaultValue={status}>
-            <option value="">All statuses</option>
-            <option value="new">New</option>
+            <option value="">Everyone</option>
+            <option value="new">Not contacted</option>
             <option value="contacted">Contacted</option>
             <option value="closed">Closed</option>
           </Select>
@@ -204,33 +194,31 @@ export default async function LeadsAdminPage({
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
             <option value="name">Name A-Z</option>
-            <option value="stage">Stage A-Z</option>
-            <option value="status">Status A-Z</option>
-          </Select>
-        </Field>
-        <Field label="Follow-up">
-          <Select name="followup" defaultValue={followup}>
-            <option value="">All bookings</option>
-            <option value="needs">Needs follow-up only</option>
+            <option value="stage">How far they got</option>
+            <option value="status">Contacted or not</option>
           </Select>
         </Field>
       </AdminListControls>
 
-      <AdminTable headers={["Contact", "Stage", "Consultation", "Received", "Status", ""]}>
+      <BookingTabs tabs={tabs} active={activeTab} />
+
+      <AdminTable
+        flush
+        headers={["Who", "How far they got", "What to do", "Call time", "Came in", ""]}
+      >
         {leads.map((l) => {
-          const needsDetailsFollowup = l.stage === "details" && minutesSince(l.createdAt) >= 30;
-          const needsSlotFollowup = l.stage === "paid";
-          const followupText = needsSlotFollowup
-            ? `Hi ${l.name}, your ${trainer.brand} consultation payment is received. Please pick your slot, or reply here and I'll help you schedule it. Booking ID: #${l.id}`
-            : `Hi ${l.name}, I noticed you started booking a ${trainer.brand} consultation. Do you need help completing payment or choosing a slot? Booking ID: #${l.id}`;
-          const whatsappText =
-            needsDetailsFollowup || needsSlotFollowup
-              ? followupText
-              : `Hi ${l.name}, this is regarding your ${trainer.brand} consultation booking #${l.id}.`;
+          const progress = progressFor.get(l.id)!;
+          const followupText =
+            l.stage === "paid"
+              ? `Hi ${l.name}, your ${trainer.brand} consultation payment is received. Please pick your slot, or reply here and I'll help you schedule it. Booking ID: #${l.id}`
+              : `Hi ${l.name}, I noticed you started booking a ${trainer.brand} consultation. Do you need help completing payment or choosing a slot? Booking ID: #${l.id}`;
+          const whatsappText = progress.needsFollowup
+            ? followupText
+            : `Hi ${l.name}, this is regarding your ${trainer.brand} consultation booking #${l.id}.`;
           const notify = notifications.get(l.id);
 
           return (
-          <tr key={l.id} className={needsDetailsFollowup || needsSlotFollowup ? "bg-accent/5" : undefined}>
+          <tr key={l.id} className={progress.needsFollowup ? "bg-warn/5" : undefined}>
             <td className="px-4 py-3">
               <span className="font-semibold">{l.name}</span>
               <a
@@ -249,60 +237,55 @@ export default async function LeadsAdminPage({
               </span>
             </td>
             <td className="px-4 py-3">
-              <StatusPill value={STAGE_LABEL[l.stage] ?? l.stage} />
-              {needsDetailsFollowup && (
-                <span className="mt-1 block text-xs text-warn">Abandoned after details</span>
-              )}
-              {needsSlotFollowup && (
-                <span className="mt-1 block text-xs text-warn">Paid, slot pending</span>
-              )}
+              <BookingStageSummary progress={progress} />
+            </td>
+            <td className="px-4 py-3">
+              <p className={`text-xs ${progress.tone === "warn" ? "text-warn" : "text-muted"}`}>
+                {progress.headline}
+              </p>
+              <span className="mt-1 inline-block">
+                <StatusPill
+                  value={l.status}
+                  label={
+                    l.status === "contacted" && l.contactedAt
+                      ? `Messaged ${ageLabel(l.contactedAt, now)}`
+                      : (FOLLOWUP_LABEL[l.status] ?? l.status)
+                  }
+                />
+              </span>
             </td>
             <td className="px-4 py-3 text-xs text-muted">
-              {l.scheduledAt ? (
-                <span className="block font-semibold text-fg">{formatSlot(l.scheduledAt)}</span>
+              {l.calendlyStatus === "canceled" ? (
+                <span className="block font-semibold text-bad">Cancelled</span>
+              ) : l.scheduledAt ? (
+                <span className="block font-semibold text-fg">{dateTime(l.scheduledAt)}</span>
               ) : (
-                <span className="block">{l.stage === "booked" ? "Slot unknown" : "—"}</span>
+                <span className="block">Not picked</span>
               )}
               {(["trainer", "customer"] as const).map((audience) => {
                 const note = notify?.[audience];
                 if (!note) return null;
                 return (
-                  <span key={audience} className={`block ${note.ok ? "text-ok" : "text-bad"}`}>
-                    {audience === "trainer" ? "Trainer" : "Customer"}: {note.ok ? "sent" : "failed"}
-                    {note.errorCode ? ` (${note.errorCode})` : ""}
+                  <span key={audience} className={`mt-0.5 block ${note.ok ? "text-ok" : "text-bad"}`}>
+                    {audience === "trainer" ? "You" : "They"} got the message:{" "}
+                    {note.ok ? "yes" : "no"}
                   </span>
                 );
               })}
             </td>
             <td className="px-4 py-3 text-xs text-muted">
-              {new Date(l.createdAt).toLocaleString("en-IN")}
-              <span className="block">{ageLabel(l.createdAt)}</span>
-            </td>
-            <td className="px-4 py-3">
-              <StatusPill value={l.status} />
+              {dateTime(l.createdAt)}
+              <span className="block">{ageLabel(l.createdAt, now)}</span>
             </td>
             <td className="px-4 py-3">
               <div className="flex flex-wrap gap-2">
                 <BookingDetails booking={l} notify={notify} />
-                <a
+                {/* Opening the chat records the contact — no separate button. */}
+                <WhatsAppButton
+                  leadId={l.id}
                   href={whatsappHref(l.whatsapp, whatsappText)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`rounded-lg border px-2 py-1 text-xs ${
-                    needsDetailsFollowup || needsSlotFollowup
-                      ? "border-accent text-accent hover:bg-accent hover:text-ink"
-                      : "border-line text-muted hover:border-accent hover:text-accent"
-                  }`}
-                >
-                  WhatsApp
-                </a>
-                {l.status !== "contacted" && (
-                  <form action={setLeadStatusAction.bind(null, l.id, "contacted")}>
-                    <button className="rounded-lg border border-line px-2 py-1 text-xs text-muted hover:border-accent hover:text-accent">
-                      Contacted
-                    </button>
-                  </form>
-                )}
+                  highlight={progress.needsFollowup}
+                />
                 {l.status !== "closed" && (
                   <form action={setLeadStatusAction.bind(null, l.id, "closed")}>
                     <button className="rounded-lg border border-line px-2 py-1 text-xs text-muted hover:border-accent hover:text-accent">
@@ -317,8 +300,12 @@ export default async function LeadsAdminPage({
         })}
         {leads.length === 0 && (
           <tr>
-            <td colSpan={6} className="px-4 py-8 text-center text-muted">
-              No bookings yet.
+            <td colSpan={6} className="px-4 py-10 text-center text-muted">
+              {allLeads.length === 0
+                ? "No bookings yet."
+                : query || status
+                  ? "Nothing here matches your search."
+                  : (EMPTY_TAB[activeTab] ?? "Nothing here.")}
             </td>
           </tr>
         )}

@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { checkBookingWhatsAppAction } from "./actions";
+import { BookingNextStep, BookingProgressBar } from "@/components/admin/BookingProgressBar";
+import { ageLabel, bookingProgress, fullDateTime, money } from "@/lib/bookingProgress";
+import {
+  checkBookingWhatsAppAction,
+  refreshCalendlySlotAction,
+  setLeadStatusAction,
+} from "./actions";
+import { WhatsAppButton } from "./WhatsAppButton";
 
 export interface NotifyRecord {
   audience?: "trainer" | "customer";
@@ -23,6 +30,7 @@ export interface BookingDetail {
   message: string | null;
   stage: string;
   status: string;
+  contactedAt: string | null;
   amountPaise: number | null;
   currency: string | null;
   razorpayOrderId: string | null;
@@ -31,64 +39,84 @@ export interface BookingDetail {
   bookedAt: string | null;
   scheduledAt: string | null;
   calendlyEventUri: string | null;
+  calendlyStatus: string | null;
+  calendlyCheckedAt: string | null;
   createdAt: string;
 }
 
-const IST = "Asia/Kolkata";
+/** Plain words for the trainer's own follow-up state. */
+const FOLLOWUP_LABEL: Record<string, string> = {
+  new: "You have not contacted them",
+  contacted: "You have contacted them",
+  closed: "Closed",
+};
 
-function dateTime(value: string | null) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: IST,
-  }).format(new Date(value));
-}
-
-function money(paise: number | null, currency: string | null) {
-  if (!paise) return "—";
-  return `${currency === "INR" ? "₹" : `${currency ?? ""} `}${(paise / 100).toLocaleString("en-IN")}`;
-}
+/** The Twilio failures that actually happen, in words a trainer understands. */
+const WHATSAPP_ERROR: Record<number, string> = {
+  63003: "that number is not on WhatsApp",
+  63016: "they have not messaged us first, so WhatsApp blocked it",
+  63024: "the message template was rejected",
+  21211: "the phone number looks wrong",
+};
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[9rem_1fr] gap-3 border-b border-line/60 py-2.5 last:border-b-0">
-      <dt className="text-xs font-semibold uppercase tracking-wider text-muted">{label}</dt>
+    <div className="grid grid-cols-[7rem_1fr] gap-3 py-1.5">
+      <dt className="text-sm text-muted">{label}</dt>
       <dd className="min-w-0 break-words text-sm text-fg">{children}</dd>
     </div>
   );
 }
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-line/60 pt-3">
+      <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted/70">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
 function NotifyLine({
   audience,
+  customerName,
   note,
   leadId,
 }: {
   audience: "trainer" | "customer";
+  customerName: string;
   note?: NotifyRecord;
   leadId: number;
 }) {
-  const label = audience === "trainer" ? "Trainer" : "Customer";
-  if (!note) return <p className="mb-2 text-muted last:mb-0">{label}: not sent</p>;
+  const label = audience === "trainer" ? "To you" : `To ${customerName.split(" ")[0]}`;
+  if (!note) {
+    return (
+      <div className="flex items-baseline justify-between gap-3 py-1.5">
+        <span className="text-sm text-muted">{label}</span>
+        <span className="text-sm text-muted">Not sent</span>
+      </div>
+    );
+  }
+  const reason = note.errorCode ? WHATSAPP_ERROR[note.errorCode] : null;
   return (
-    <div className="mb-2 last:mb-0">
-      <p className={note.ok ? "text-ok" : "text-bad"}>
-        {label}: {note.ok ? "sent" : "failed"}
-        {note.errorCode ? ` (Twilio ${note.errorCode})` : ""}
-        {note.recipient ? ` → ${note.recipient}` : ""}
-      </p>
-      {!note.ok && note.error && <p className="text-xs text-muted">{note.error}</p>}
-      {note.ok && note.sid && (
-        <form action={checkBookingWhatsAppAction.bind(null, note.sid, leadId)} className="mt-1">
-          <button className="rounded border border-line px-1.5 py-0.5 text-[11px] text-muted transition-colors hover:border-accent hover:text-accent">
-            Check delivery
-          </button>
-        </form>
-      )}
+    <div className="flex items-baseline justify-between gap-3 py-1.5">
+      <span className="text-sm text-muted">{label}</span>
+      <span className="min-w-0 text-right">
+        <span className={`text-sm ${note.ok ? "text-ok" : "text-bad"}`}>
+          {note.ok ? "Sent" : "Did not send"}
+          {!note.ok && reason ? ` — ${reason}` : ""}
+        </span>
+        {!note.ok && !reason && note.error && (
+          <span className="block text-xs text-muted">{note.error}</span>
+        )}
+        {note.ok && note.sid && (
+          <form action={checkBookingWhatsAppAction.bind(null, note.sid, leadId)}>
+            <button className="mt-0.5 text-xs text-muted underline transition-colors hover:text-accent">
+              Check if it arrived
+            </button>
+          </form>
+        )}
+      </span>
     </div>
   );
 }
@@ -113,6 +141,11 @@ export function BookingDetails({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
 
+  // Computed on open, so there is no server/client clock mismatch to hydrate.
+  const progress = open ? bookingProgress(booking) : null;
+  const firstName = booking.name.split(" ")[0];
+  const amount = money(booking.amountPaise, booking.currency);
+
   return (
     <>
       <button
@@ -123,7 +156,7 @@ export function BookingDetails({
         View
       </button>
 
-      {open && (
+      {open && progress && (
         <div
           className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-ink/70 p-4 backdrop-blur-sm sm:items-center"
           onClick={close}
@@ -132,7 +165,7 @@ export function BookingDetails({
           aria-label={`Booking #${booking.id}`}
         >
           <div
-            className="relative my-8 w-full max-w-2xl rounded-2xl border border-line bg-ink-card p-6 shadow-glow sm:p-8"
+            className="relative my-8 w-full max-w-2xl rounded-2xl border border-line bg-ink-card p-5 shadow-glow sm:p-7"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -146,82 +179,160 @@ export function BookingDetails({
               </svg>
             </button>
 
-            <h2 className="pr-10 font-display text-2xl uppercase">
-              {booking.name}
-              <span className="ml-2 text-base text-muted">#{booking.id}</span>
-            </h2>
+            <h2 className="pr-10 font-display text-2xl uppercase">{booking.name}</h2>
+            <p className="mt-0.5 text-sm text-muted">
+              Booking #{booking.id} ·{" "}
+              {booking.contactedAt && booking.status !== "closed"
+                ? `You messaged them ${ageLabel(booking.contactedAt)}`
+                : (FOLLOWUP_LABEL[booking.status] ?? booking.status)}
+            </p>
 
-            <dl className="mt-5">
-              <Row label="WhatsApp">
-                <a
-                  href={`https://wa.me/${booking.whatsapp.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent hover:underline"
-                >
-                  {booking.whatsapp}
-                </a>
-              </Row>
-              <Row label="Email">
-                {booking.email ? (
-                  <a href={`mailto:${booking.email}`} className="text-accent hover:underline">
-                    {booking.email}
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </Row>
-              <Row label="Goal / Level">
-                {booking.goal ?? "—"}
-                {booking.level ? ` · ${booking.level}` : ""}
-              </Row>
-              <Row label="Message">
-                <span className="whitespace-pre-wrap">{booking.message || "—"}</span>
-              </Row>
-              <Row label="Stage">{booking.stage}</Row>
-              <Row label="Follow-up">{booking.status}</Row>
-              <Row label="Consultation">
-                {booking.scheduledAt ? (
-                  <span className="font-semibold">{dateTime(booking.scheduledAt)} IST</span>
-                ) : booking.stage === "booked" ? (
-                  "Slot time unknown — CALENDLY_ACCESS_TOKEN may be unset"
-                ) : (
-                  "Not booked yet"
-                )}
-              </Row>
-              <Row label="Amount">{money(booking.amountPaise, booking.currency)}</Row>
-              <Row label="Payment">
-                {booking.razorpayPaymentId ?? "—"}
-                {booking.razorpayOrderId && (
-                  <span className="block text-xs text-muted">Order {booking.razorpayOrderId}</span>
-                )}
-                {booking.paidAt && (
-                  <span className="block text-xs text-muted">Paid {dateTime(booking.paidAt)}</span>
-                )}
-              </Row>
-              <Row label="Calendly">
-                {booking.calendlyEventUri ? (
-                  <a
-                    href={booking.calendlyEventUri}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="break-all text-accent hover:underline"
-                  >
-                    View event
-                  </a>
-                ) : (
-                  "—"
-                )}
-                {booking.bookedAt && (
-                  <span className="block text-xs text-muted">Booked {dateTime(booking.bookedAt)}</span>
-                )}
-              </Row>
-              <Row label="WhatsApp sent">
-                <NotifyLine audience="trainer" note={notify?.trainer} leadId={booking.id} />
-                <NotifyLine audience="customer" note={notify?.customer} leadId={booking.id} />
-              </Row>
-              <Row label="Received">{dateTime(booking.createdAt)}</Row>
-            </dl>
+            <div className="mt-4">
+              <BookingProgressBar progress={progress} />
+            </div>
+
+            <div className="mt-3">
+              <BookingNextStep progress={progress} />
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <WhatsAppButton
+                leadId={booking.id}
+                href={`https://wa.me/${booking.whatsapp.replace(/\D/g, "")}`}
+                label={`Message ${firstName}`}
+                highlight
+              />
+              {/* For a call or an email — WhatsApp records itself. */}
+              {booking.status !== "closed" && (
+                <form action={setLeadStatusAction.bind(null, booking.id, "contacted")}>
+                  <button className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
+                    I called or emailed them
+                  </button>
+                </form>
+              )}
+              {booking.status !== "closed" && (
+                <form action={setLeadStatusAction.bind(null, booking.id, "closed")}>
+                  <button className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
+                    Close this booking
+                  </button>
+                </form>
+              )}
+            </div>
+
+            <div className="mt-5 space-y-3">
+              <Section title="Contact">
+                <dl>
+                  <Row label="WhatsApp">
+                    <a
+                      href={`https://wa.me/${booking.whatsapp.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent hover:underline"
+                    >
+                      {booking.whatsapp}
+                    </a>
+                  </Row>
+                  <Row label="Email">
+                    {booking.email ? (
+                      <a href={`mailto:${booking.email}`} className="text-accent hover:underline">
+                        {booking.email}
+                      </a>
+                    ) : (
+                      "Not given"
+                    )}
+                  </Row>
+                  <Row label="Wants">
+                    {booking.goal ?? "Not given"}
+                    {booking.level ? ` · ${booking.level}` : ""}
+                  </Row>
+                </dl>
+              </Section>
+
+              {booking.message && (
+                <Section title={`What ${firstName} wrote`}>
+                  <p className="whitespace-pre-wrap text-sm text-fg">{booking.message}</p>
+                </Section>
+              )}
+
+              <Section title="Consultation">
+                <dl>
+                  <Row label="Call time">
+                    {booking.calendlyStatus === "canceled" ? (
+                      <span className="text-bad">
+                        Cancelled
+                        {booking.scheduledAt && (
+                          <span className="block text-xs text-muted line-through">
+                            {fullDateTime(booking.scheduledAt)}
+                          </span>
+                        )}
+                      </span>
+                    ) : booking.scheduledAt ? (
+                      <>
+                        <span className="font-semibold">{fullDateTime(booking.scheduledAt)}</span>
+                        {booking.calendlyStatus === "unverified" && (
+                          <span className="block text-xs text-warn">
+                            Not confirmed with Calendly
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      "Not picked yet"
+                    )}
+                  </Row>
+                  <Row label="Paid">
+                    {amount ? `${amount} on ${fullDateTime(booking.paidAt)}` : "Not paid"}
+                  </Row>
+                  {booking.calendlyEventUri && (
+                    <Row label="Checked">
+                      <span className="text-muted">
+                        {booking.calendlyCheckedAt
+                          ? `Calendly last asked ${fullDateTime(booking.calendlyCheckedAt)}`
+                          : "Never asked Calendly"}
+                      </span>
+                      <form action={refreshCalendlySlotAction.bind(null, booking.id)}>
+                        <button className="mt-1 rounded-lg border border-line px-2 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-accent">
+                          Refresh from Calendly
+                        </button>
+                      </form>
+                    </Row>
+                  )}
+                </dl>
+              </Section>
+
+              <Section title="Confirmation messages we sent">
+                <NotifyLine audience="trainer" customerName={booking.name} note={notify?.trainer} leadId={booking.id} />
+                <NotifyLine audience="customer" customerName={booking.name} note={notify?.customer} leadId={booking.id} />
+              </Section>
+
+              <details className="border-t border-line/60 pt-3">
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-muted/70">
+                  Payment and technical details
+                </summary>
+                <dl className="mt-1">
+                  <Row label="Payment ID">{booking.razorpayPaymentId ?? "—"}</Row>
+                  <Row label="Order ID">{booking.razorpayOrderId ?? "—"}</Row>
+                  <Row label="Calendly">
+                    {booking.calendlyEventUri ? (
+                      <a
+                        href={booking.calendlyEventUri}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all text-accent hover:underline"
+                      >
+                        Open the event
+                      </a>
+                    ) : (
+                      "No event"
+                    )}
+                  </Row>
+                  <Row label="Booked on">{fullDateTime(booking.bookedAt)}</Row>
+                  <Row label="Form filled">{fullDateTime(booking.createdAt)}</Row>
+                  <Row label="Raw stage">
+                    {booking.stage} / {booking.status}
+                  </Row>
+                </dl>
+              </details>
+            </div>
           </div>
         </div>
       )}

@@ -134,9 +134,22 @@ export function AdminHeading({
   );
 }
 
-export function AdminTable({ headers, children }: { headers: string[]; children: ReactNode }) {
+export function AdminTable({
+  headers,
+  children,
+  /** Square off the top so a tab bar can sit flush against it. */
+  flush = false,
+}: {
+  headers: string[];
+  children: ReactNode;
+  flush?: boolean;
+}) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line">
+    <div
+      className={`overflow-x-auto border border-line ${
+        flush ? "rounded-b-2xl border-t-0" : "rounded-2xl"
+      }`}
+    >
       <table className="w-full text-left text-sm">
         <thead className="bg-ink-soft text-xs uppercase tracking-wider text-muted">
           <tr>
@@ -153,15 +166,18 @@ export function AdminTable({ headers, children }: { headers: string[]; children:
   );
 }
 
-export function StatusPill({ value }: { value: string }) {
+export function StatusPill({ value, label }: { value: string; label?: string }) {
+  // Lower-cased so a display label ("Paid") still matches its tone key ("paid").
   const tone =
     {
       published: "text-ok border-ok/40",
       confirmed: "text-ok border-ok/40",
       paid: "text-ok border-ok/40",
+      booked: "text-ok border-ok/40",
       new: "text-accent border-accent/40",
       popular: "text-accent border-accent/40",
       created: "text-accent border-accent/40",
+      details: "text-warn border-warn/40",
       pending_payment: "text-warn border-warn/40",
       contacted: "text-warn border-warn/40",
       draft: "text-muted border-line",
@@ -169,10 +185,10 @@ export function StatusPill({ value }: { value: string }) {
       completed: "text-muted border-line",
       cancelled: "text-bad border-bad/40",
       failed: "text-bad border-bad/40",
-    }[value] ?? "text-muted border-line";
+    }[value.toLowerCase()] ?? "text-muted border-line";
   return (
     <span className={`inline-block rounded-full border px-2 py-0.5 text-xs ${tone}`}>
-      {value.replace(/_/g, " ")}
+      {(label ?? value).replace(/_/g, " ")}
     </span>
   );
 }
