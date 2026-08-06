@@ -3,6 +3,7 @@ import { and, desc, eq, gt, or } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { AdminCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, StatusPill } from "@/components/admin/ui";
 import { DeleteForm } from "@/components/admin/DeleteForm";
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { smtpConfigured } from "@/lib/mail";
 import { clearTestNotificationsAction, sendNewsletterAction, deleteSubscriberAction } from "./actions";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
@@ -167,7 +168,7 @@ export default async function NewsletterAdminPage({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold">{entry.details.subject ?? "Newsletter"}</span>
                       {entry.details.test && <StatusPill value="test" />}
-                      <span className="text-xs text-muted">{new Date(entry.at).toLocaleString("en-IN")}</span>
+                      <span className="text-xs text-muted">{formatDateTime(entry.at)}</span>
                     </div>
                     <p className="mt-1 text-xs text-muted">
                       Sent by {entry.actor} · {entry.details.sent ?? 0} of {entry.details.total ?? 0} delivered
@@ -251,7 +252,7 @@ export default async function NewsletterAdminPage({
                 <StatusPill value={s.status} />
               </td>
               <td className="px-4 py-3 text-xs text-muted">
-                {new Date(s.createdAt).toLocaleDateString("en-IN")}
+                {formatDate(s.createdAt, "short")}
               </td>
               <td className="px-4 py-3 text-right">
                 <DeleteForm

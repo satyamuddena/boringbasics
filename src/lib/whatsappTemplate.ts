@@ -7,6 +7,8 @@
  * structural one here.
  */
 
+import { DISPLAY_TIME_ZONE } from "@/lib/datetime";
+
 export interface BookingWhatsAppPayload {
   name: string;
   whatsapp: string;
@@ -39,13 +41,13 @@ export function bookingDateAndTime(value: string) {
     date: new Intl.DateTimeFormat("en-IN", {
       day: "numeric",
       month: "long",
-      timeZone: "Asia/Kolkata",
+      timeZone: DISPLAY_TIME_ZONE,
     }).format(date),
     time: new Intl.DateTimeFormat("en-IN", {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZone: "Asia/Kolkata",
+      timeZone: DISPLAY_TIME_ZONE,
     })
       .format(date)
       .replace(/\b(am|pm)\b/i, (match) => match.toUpperCase()),

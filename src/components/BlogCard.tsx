@@ -2,9 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import type { PostListItem } from "@/content/site";
 import { BrandMark } from "./BrandLogo";
+import { formatDate as formatZoned } from "@/lib/datetime";
 
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const formatDate = (iso: string) => formatZoned(iso, "short");
 
 export function BlogCard({ post }: { post: PostListItem }) {
   return (
