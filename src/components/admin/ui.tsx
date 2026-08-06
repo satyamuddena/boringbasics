@@ -155,9 +155,7 @@ export function AdminHeading({
   action?: { href: string; label: string };
 }) {
   return (
-    /* pl-14 on mobile clears the fixed sidebar menu button, which overlaps this
-       row and nothing below it. See the comment in (panel)/layout.tsx. */
-    <div className="mb-6 flex items-center justify-between pl-14 md:pl-0">
+    <div className="mb-6 flex items-center justify-between">
       <h1 className="font-display text-2xl uppercase sm:text-3xl">{title}</h1>
       {action && (
         <Link

@@ -11,6 +11,7 @@ import { LeadWhatsAppButton } from "./LeadWhatsAppButton";
 import {
   ageLabel,
   bookingProgress,
+  byCallTime,
   dateTime,
   inBookingTab,
   type BookingTabKey,
@@ -194,6 +195,10 @@ export default async function LeadsAdminPage({
     if (sort === "name") return a.name.localeCompare(b.name);
     if (sort === "stage") return a.stage.localeCompare(b.stage) || b.id - a.id;
     if (sort === "status") return a.status.localeCompare(b.status) || b.id - a.id;
+    // "Upcoming" answers "who am I speaking to next", so the default order is
+    // the clock, not the booking id. Newest-first put a 2:00 pm call above a
+    // 1:30 pm one purely because it was booked later.
+    if (activeTab === "upcoming") return byCallTime(a, b);
     return b.id - a.id;
   });
 
@@ -276,7 +281,11 @@ export default async function LeadsAdminPage({
         </Field>
         <Field label="Sort">
           <Select name="sort" defaultValue={sort}>
-            <option value="newest">Newest first</option>
+            {/* The default means "soonest call" on Upcoming and "newest
+                booking" everywhere else, so the label has to say which. */}
+            <option value="newest">
+              {activeTab === "upcoming" ? "Soonest call first" : "Newest first"}
+            </option>
             <option value="oldest">Oldest first</option>
             <option value="name">Name A-Z</option>
             <option value="stage">How far they got</option>

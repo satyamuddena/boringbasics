@@ -71,7 +71,10 @@ export function ImageUploadField({
             accept="image/jpeg,image/png,image/webp,image/avif"
             onChange={(e) => onFile(e.target.files?.[0])}
             disabled={busy}
-            className="block text-xs text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-accent-deep"
+            /* w-full/max-w-full because a file input is sized by its button
+               plus the "No file chosen" label and will not shrink — on a
+               375px phone that pushed the whole settings page 35px sideways. */
+            className="block w-full max-w-full text-xs text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-accent-deep"
           />
           {busy && <p className="mt-1 text-xs text-muted">Uploading…</p>}
           {error && <p className="mt-1 text-xs text-bad">{error}</p>}

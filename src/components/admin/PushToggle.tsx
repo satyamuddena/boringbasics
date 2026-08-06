@@ -20,6 +20,7 @@ import {
 type State =
   | "loading"
   | "unsupported" // no service worker / push API at all
+  | "not-configured" // the server has no VAPID keys set
   | "needs-install" // iOS in a tab: must be added to the Home Screen first
   | "off"
   | "on"
@@ -98,12 +99,23 @@ export function PushToggle({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !vapidKey) {
-        setState(isIOS() && !isStandalone() ? "needs-install" : "unsupported");
-        return;
-      }
+      // Order matters. An iPhone in a Safari tab has no PushManager at all, so
+      // the install prompt has to be checked first or it reads as "your browser
+      // cannot do this" when the real answer is "add it to your home screen".
       if (isIOS() && !isStandalone()) {
         setState("needs-install");
+        return;
+      }
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setState("unsupported");
+        return;
+      }
+      // A missing key is a server misconfiguration, not a browser limitation.
+      // These used to collapse into the same silent `unsupported` branch, which
+      // renders nothing — so a deploy without VAPID keys looked identical to a
+      // browser that cannot do push, with no way to tell them apart on a phone.
+      if (!vapidKey) {
+        setState("not-configured");
         return;
       }
       if (Notification.permission === "denied") {
@@ -203,6 +215,17 @@ export function PushToggle({
           <p className="mt-2 text-xs text-muted">
             Apple only allows notifications from an app on the Home Screen, not from a Safari
             tab.
+          </p>
+        </div>
+      )}
+
+      {state === "not-configured" && (
+        <div>
+          <p className="font-semibold">Notifications are not set up on the server</p>
+          <p className="mt-1 text-xs text-muted">
+            The VAPID keys are missing, so no device can be registered. Generate a pair with{" "}
+            <code className="text-accent">npx web-push generate-vapid-keys</code> and set
+            VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT, then redeploy.
           </p>
         </div>
       )}

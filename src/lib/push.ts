@@ -2,7 +2,7 @@ import "server-only";
 import webpush, { type WebPushError } from "web-push";
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
-import type { AdminPushNotification } from "@/lib/pushTemplate";
+import { vapidSubject, type AdminPushNotification } from "@/lib/pushTemplate";
 
 /**
  * Web Push delivery to the installed admin app.
@@ -50,8 +50,9 @@ function vapidReady(): { ok: true } | { ok: false; reason: string } {
   if (configured) return { ok: true };
 
   // Required by the VAPID spec: a mailto: or https: URI push services can use
-  // to contact whoever is sending. Not a credential — just an address.
-  const subject = process.env.VAPID_SUBJECT?.trim() || "mailto:admin@boringbasics.fit";
+  // to contact whoever is sending. Not a credential — just an address. Falls
+  // back to the admin login, which is by definition a real monitored mailbox.
+  const subject = vapidSubject(process.env.VAPID_SUBJECT, process.env.ADMIN_EMAIL);
   try {
     webpush.setVapidDetails(subject, publicKey, privateKey);
     configured = true;

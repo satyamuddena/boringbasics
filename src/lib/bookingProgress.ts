@@ -261,3 +261,25 @@ export function bookingProgress(lead: BookingLike, now = Date.now()): BookingPro
 
   return { steps, ...message() };
 }
+
+/**
+ * Orders the Upcoming tab by the clock — soonest call first.
+ *
+ * The list answers "who am I speaking to next", so a 1:30 pm call belongs above
+ * a 2:00 pm one even when the later call was booked more recently. Rows without
+ * a usable time sink to the bottom rather than jumping the queue on a NaN
+ * comparison, and ties fall back to the booking id so the order is stable.
+ */
+export function byCallTime(
+  a: { id: number; scheduledAt?: string | null },
+  b: { id: number; scheduledAt?: string | null },
+): number {
+  const at = a.scheduledAt ? new Date(a.scheduledAt).getTime() : NaN;
+  const bt = b.scheduledAt ? new Date(b.scheduledAt).getTime() : NaN;
+  const aBad = Number.isNaN(at);
+  const bBad = Number.isNaN(bt);
+  if (aBad && bBad) return b.id - a.id;
+  if (aBad) return 1;
+  if (bBad) return -1;
+  return at - bt || b.id - a.id;
+}

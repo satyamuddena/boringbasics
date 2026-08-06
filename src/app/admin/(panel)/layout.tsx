@@ -6,6 +6,7 @@ import { logoutAction } from "./actions";
 import { BrandLogo, BrandMark } from "@/components/BrandLogo";
 import { getSite, getTrainer } from "@/lib/content";
 import { AdminSidebar, type NavSection } from "./AdminSidebar";
+import { MOBILE_BAR_CLEARANCE } from "@/lib/adminChrome";
 
 export const metadata: Metadata = {
   title: { default: "Admin", template: "%s | Admin" },
@@ -102,12 +103,12 @@ export default async function AdminPanelLayout({
         }
       />
       {/*
-        The fixed menu button only occupies the top-left corner, so only the
-        page heading needs to dodge it (AdminHeading carries that clearance).
-        Indenting the whole column instead would cost 40px of width down the
-        entire page — 17% of a 375px phone, which the booking cards need.
+        The mobile bar is fixed, so the column reserves its height rather than
+        sliding underneath it. Padding on the column (not a margin on the bar)
+        keeps the full width available to the booking cards — 40px of indent
+        would be 17% of a 375px phone.
       */}
-      <div className="min-w-0 flex-1 p-4 sm:p-6 md:p-10">{children}</div>
+      <div className={`min-w-0 flex-1 p-4 sm:p-6 md:p-10 ${MOBILE_BAR_CLEARANCE}`}>{children}</div>
     </div>
   );
 }

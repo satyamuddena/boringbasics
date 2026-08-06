@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavIcon, type NavIconName } from "@/components/admin/NavIcon";
+import { MOBILE_BAR_HEIGHT } from "@/lib/adminChrome";
 
 export interface NavItem {
   label: string;
@@ -172,18 +173,32 @@ export function AdminSidebar({
         {!collapsed && <div className="mt-8 border-t border-line pt-4">{footer}</div>}
       </aside>
 
-      {/* Mobile trigger */}
-      <button
-        type="button"
-        onClick={() => setMobileOpen(true)}
-        aria-label="Open admin menu"
-        aria-expanded={mobileOpen}
-        className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-ink-card text-fg shadow-lg md:hidden"
+      {/*
+        Mobile top bar.
+
+        This used to be a lone button at `top-4`, which was unreachable once the
+        app was installed on an iPhone: standalone mode with a translucent status
+        bar draws the page *under* the notch, and the top ~47-59px belong to iOS,
+        which swallows the touch. Nothing looked broken — the button was simply
+        dead. Owning the safe-area inset here is what makes it tappable, and the
+        bar earns its keep by carrying the brand as well.
+      */}
+      <header
+        className={`fixed inset-x-0 top-0 z-40 flex items-center gap-3 border-b border-line bg-ink-soft/95 px-4 backdrop-blur md:hidden ${MOBILE_BAR_HEIGHT} pt-[env(safe-area-inset-top)]`}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
-          <path d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
-      </button>
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open admin menu"
+          aria-expanded={mobileOpen}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-ink-card text-fg"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        </button>
+        <div className="min-w-0 flex-1">{brand}</div>
+      </header>
 
       {/* Mobile slide-over */}
       {mobileOpen && (
@@ -195,7 +210,9 @@ export function AdminSidebar({
           aria-label="Admin menu"
         >
           <div
-            className="h-full w-72 max-w-[85vw] overflow-y-auto border-r border-line bg-ink-soft p-4"
+            /* Same inset as the top bar: without it the close button and the
+               brand sit under the iPhone status bar and cannot be tapped. */
+            className="h-full w-72 max-w-[85vw] overflow-y-auto border-r border-line bg-ink-soft p-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-2">
