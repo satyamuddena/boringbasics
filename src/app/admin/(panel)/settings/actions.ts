@@ -92,6 +92,14 @@ export async function saveSettingsAction(formData: FormData) {
             HIDEABLE_PAGES.filter((p) => formData.get(`page_${p.key}`) == null).map((p) => p.key),
           ),
           testPaymentEnabled: formData.get("testPaymentEnabled") != null,
+          pushOnBooking: formData.get("pushOnBooking") != null,
+          pushOnPayment: formData.get("pushOnPayment") != null,
+          pushOnReminder: formData.get("pushOnReminder") != null,
+          // Constrained to the values the dropdown offers: a hand-posted 0 would
+          // make every confirmed call due a reminder at once.
+          pushReminderMinutes: [5, 10, 15, 30].includes(num(formData, "pushReminderMinutes", 10))
+            ? num(formData, "pushReminderMinutes", 10)
+            : 10,
           logoPath: assetPath(formData, "logoPath"),
           notificationLogoPath: assetPath(formData, "notificationLogoPath"),
           iconPath: assetPath(formData, "iconPath"),

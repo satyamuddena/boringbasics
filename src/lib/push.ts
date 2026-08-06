@@ -2,7 +2,7 @@ import "server-only";
 import webpush, { type WebPushError } from "web-push";
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
-import { vapidSubject, type AdminPushNotification } from "@/lib/pushTemplate";
+import { vapidSubject, type AdminPushNotification, type PushKind } from "@/lib/pushTemplate";
 
 /**
  * Web Push delivery to the installed admin app.
@@ -152,12 +152,28 @@ const isGone = (status: number | undefined) => status === 404 || status === 410;
  */
 export async function sendAdminPush(
   notification: AdminPushNotification,
-  options: { userId?: number } = {},
+  options: { userId?: number; kind?: PushKind } = {},
 ): Promise<PushSendResult> {
   const ready = vapidReady();
   if (!ready.ok) return { ...NOOP, skipped: ready.reason };
 
   const db = getDb();
+
+  // Per-kind switches from Settings. Enforced here rather than at each trigger
+  // so a new caller cannot forget to check, and deliberately skipped when no
+  // kind is given — that is how the test page can prove a disabled kind still
+  // works before it is switched back on.
+  if (options.kind) {
+    const settings = db.select().from(t.siteSettings).where(eq(t.siteSettings.id, 1)).get();
+    const enabled: Record<PushKind, boolean> = {
+      booking: settings?.pushOnBooking ?? true,
+      payment: settings?.pushOnPayment ?? false,
+      reminder: settings?.pushOnReminder ?? true,
+    };
+    if (!enabled[options.kind]) {
+      return { ...NOOP, skipped: `${options.kind} notifications are switched off in Settings.` };
+    }
+  }
   const subs = options.userId
     ? db
         .select()

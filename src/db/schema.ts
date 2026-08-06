@@ -145,6 +145,17 @@ export const siteSettings = sqliteTable("site_settings", {
   calendlyUrl: text("calendly_url"),
   /** Admin toggle: allow skipping payment for testing (even on the deployed site). */
   testPaymentEnabled: integer("test_payment_enabled", { mode: "boolean" }).notNull().default(false),
+  /*
+   * Which push notifications the phone actually gets. Separate columns rather
+   * than a JSON blob so a new kind is a migration, not a silently-missing key.
+   * Payment defaults off: it fires at the same moment as the booking alert on a
+   * normal paid booking, which is what made every notification look alike.
+   */
+  pushOnBooking: integer("push_on_booking", { mode: "boolean" }).notNull().default(true),
+  pushOnPayment: integer("push_on_payment", { mode: "boolean" }).notNull().default(false),
+  pushOnReminder: integer("push_on_reminder", { mode: "boolean" }).notNull().default(true),
+  /** How long before a call the reminder fires. */
+  pushReminderMinutes: integer("push_reminder_minutes").notNull().default(10),
   /** Brand assets and visual identity, editable from the admin settings page. */
   logoPath: text("logo_path"),
   /** Wide logo/wordmark rendered in newsletter and notification headers. */
@@ -218,6 +229,12 @@ export const leads = sqliteTable("leads", {
    * completed the form.
    */
   scheduledAt: text("scheduled_at"),
+  /**
+   * When the pre-call reminder was sent. The marker is what makes the reminder
+   * safe to run on a timer *and* from a cron endpoint: whoever gets there first
+   * claims it, and a restart mid-window cannot double-buzz the phone.
+   */
+  reminderSentAt: text("reminder_sent_at"),
   createdAt: text("created_at").notNull(),
 });
 

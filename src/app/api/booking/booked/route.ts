@@ -124,7 +124,9 @@ export async function POST(request: Request) {
       ),
       // Buzzes the installed admin app. Never throws; a missing VAPID key is a
       // silent no-op, exactly like an unconfigured Twilio.
-      sendAdminPush(bookingConfirmedNotification({ ...booking, scheduledAt })).then((result) =>
+      sendAdminPush(bookingConfirmedNotification({ ...booking, scheduledAt }), {
+        kind: "booking",
+      }).then((result) =>
         audit({
           actor: "public",
           action: "push_notify",

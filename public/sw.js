@@ -16,7 +16,7 @@
  * so what you read here is what runs.
  */
 
-const SW_VERSION = "1";
+const SW_VERSION = "2";
 
 self.addEventListener("install", () => {
   // Take over straight away rather than waiting for every tab to close, so a
@@ -43,8 +43,10 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "Boring Basics";
   const options = {
     body: payload.body || "",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    // Artwork comes from the payload so a reminder does not look identical to a
+    // new booking. Falling back to the app icon keeps an older server working.
+    icon: payload.icon || "/icons/icon-192.png",
+    badge: payload.badge || "/icons/icon-192.png",
     // Same tag replaces an earlier notification for the same booking instead of
     // stacking three near-identical rows on the lock screen.
     tag: payload.tag || "boring-basics",

@@ -239,6 +239,59 @@ export default async function SettingsAdminPage({
           </div>
         </AdminCard>
 
+        <AdminCard title="Phone notifications">
+          <p className="mb-4 text-sm text-muted">
+            What the installed app buzzes about. Each kind carries its own icon, so a
+            reminder is distinguishable from a new booking at a glance on the lock screen.
+          </p>
+          <div className="space-y-3">
+            <div>
+              <Checkbox
+                name="pushOnBooking"
+                label="Booking received"
+                defaultChecked={settings?.pushOnBooking ?? true}
+              />
+              <p className="ml-6 text-xs text-muted/70">
+                When someone pays and picks a time.
+              </p>
+            </div>
+            <div>
+              <Checkbox
+                name="pushOnReminder"
+                label="Call reminder"
+                defaultChecked={settings?.pushOnReminder ?? true}
+              />
+              <p className="ml-6 text-xs text-muted/70">
+                Shortly before a confirmed call starts.
+              </p>
+            </div>
+            <div>
+              <Checkbox
+                name="pushOnPayment"
+                label="Payment received"
+                defaultChecked={settings?.pushOnPayment ?? false}
+              />
+              <p className="ml-6 text-xs text-muted/70">
+                Fires the moment payment clears, before a time is picked. Off by default —
+                on a normal booking it arrives alongside the booking alert.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 max-w-xs">
+            <Field label="Remind me before a call">
+              <Select
+                name="pushReminderMinutes"
+                defaultValue={String(settings?.pushReminderMinutes ?? 10)}
+              >
+                <option value="5">5 minutes</option>
+                <option value="10">10 minutes</option>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+              </Select>
+            </Field>
+          </div>
+        </AdminCard>
+
         <SubmitButton>Save settings</SubmitButton>
       </form>
 

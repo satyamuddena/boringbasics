@@ -13,6 +13,9 @@
 
 import { bookingDateAndTime } from "@/lib/whatsappTemplate";
 
+/** The kinds that can be switched off individually in Settings. */
+export type PushKind = "booking" | "payment" | "reminder";
+
 /** What the service worker receives. `url` is data only — never displayed. */
 export interface AdminPushNotification {
   title: string;
@@ -20,7 +23,22 @@ export interface AdminPushNotification {
   url: string;
   /** Collapses repeat notifications for the same booking instead of stacking. */
   tag: string;
+  /**
+   * Per-kind artwork. Every notification used to carry the same app icon, so a
+   * glance at the lock screen could not tell a reminder from a new booking —
+   * which is the whole reason a reminder is useful. `icon` is the large image;
+   * `badge` is the monochrome silhouette Android puts in the status bar.
+   */
+  icon: string;
+  badge: string;
 }
+
+const ART: Record<PushKind | "test", { icon: string; badge: string }> = {
+  booking: { icon: "/icons/push-booking.png", badge: "/icons/badge-booking.png" },
+  payment: { icon: "/icons/push-payment.png", badge: "/icons/badge-payment.png" },
+  reminder: { icon: "/icons/push-reminder.png", badge: "/icons/badge-reminder.png" },
+  test: { icon: "/icons/icon-192.png", badge: "/icons/badge-booking.png" },
+};
 
 /** Everything a caller might have. Only `id`, `name` and `scheduledAt` are read. */
 export interface PushBookingInput {
@@ -81,6 +99,7 @@ export function bookingConfirmedNotification(booking: PushBookingInput): AdminPu
     body: when ? `${who} · ${when.date}, ${when.time}` : `${who} · time to be confirmed`,
     url: bookingUrl(booking.id, "all"),
     tag: `booking-${booking.id}`,
+    ...ART.booking,
   };
 }
 
@@ -93,6 +112,7 @@ export function paymentReceivedNotification(booking: PushBookingInput): AdminPus
     body: `${firstName(booking.name)} · no slot picked yet`,
     url: bookingUrl(booking.id, "notime"),
     tag: `booking-${booking.id}`,
+    ...ART.payment,
   };
 }
 
@@ -103,5 +123,29 @@ export function testNotification(): AdminPushNotification {
     body: "This is what a new booking will look like.",
     url: "/admin/leads",
     tag: "test",
+    ...ART.test,
+  };
+}
+
+/**
+ * Fires shortly before a confirmed call.
+ *
+ * Carries its own tag rather than `booking-<id>`: the booking alert may still be
+ * on the lock screen from days ago, and replacing it would swallow the reminder
+ * at the exact moment it matters. `minutes` is stated in the text because "in a
+ * few minutes" is not something you want to have to work out.
+ */
+export function callReminderNotification(
+  booking: PushBookingInput,
+  minutes: number,
+): AdminPushNotification {
+  const who = firstName(booking.name);
+  const when = booking.scheduledAt ? bookingDateAndTime(booking.scheduledAt) : null;
+  return {
+    title: `Call in ${minutes} minutes`,
+    body: when ? `${who} · ${when.time}` : who,
+    url: bookingUrl(booking.id, "upcoming"),
+    tag: `reminder-${booking.id}`,
+    ...ART.reminder,
   };
 }

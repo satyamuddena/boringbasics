@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   // Same notification as a real payment: this is the path used to rehearse the
   // booking flow, so it has to exercise the alerts too or it proves nothing.
   after(async () => {
-    const result = await sendAdminPush(paymentReceivedNotification(booking));
+    const result = await sendAdminPush(paymentReceivedNotification(booking), { kind: "payment" });
     audit({
       actor: "public",
       action: "push_notify",

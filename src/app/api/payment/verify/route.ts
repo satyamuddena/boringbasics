@@ -80,7 +80,7 @@ export async function POST(request: Request) {
   // The payment is already recorded; notifying runs after the response so a
   // slow push service can never hold up the customer's checkout screen.
   after(async () => {
-    const result = await sendAdminPush(paymentReceivedNotification(booking));
+    const result = await sendAdminPush(paymentReceivedNotification(booking), { kind: "payment" });
     audit({
       actor: "public",
       action: "push_notify",
