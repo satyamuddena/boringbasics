@@ -87,12 +87,23 @@ export function SubmitButton({
 export function AdminListControls({
   children,
   resetHref,
+  /**
+   * Collapse the filters behind a one-line summary on phones. Three stacked
+   * fields plus two buttons fill an entire phone screen, pushing the actual
+   * list below the fold — on a list you mostly just want to read, that is the
+   * wrong default. Desktop is unaffected.
+   */
+  collapseOnMobile = false,
+  /** Shown on the collapsed row so active filters are never invisible. */
+  summary,
 }: {
   children: ReactNode;
   resetHref: string;
+  collapseOnMobile?: boolean;
+  summary?: string;
 }) {
-  return (
-    <form className="mb-4 rounded-2xl border border-line bg-ink-card p-4">
+  const body = (
+    <>
       <div className="grid gap-3 md:grid-cols-4">{children}</div>
       <div className="mt-3 flex gap-2">
         <button
@@ -108,6 +119,30 @@ export function AdminListControls({
           Reset
         </Link>
       </div>
+    </>
+  );
+
+  if (!collapseOnMobile) {
+    return <form className="mb-4 rounded-2xl border border-line bg-ink-card p-4">{body}</form>;
+  }
+
+  return (
+    <form className="mb-4 rounded-2xl border border-line bg-ink-card p-4">
+      {/* Native <details>: no JavaScript, works before hydration. On md+ the
+          content is forced back to `display:block`, so the disclosure only
+          exists on phones and the desktop layout is untouched. */}
+      <details>
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-muted md:hidden [&::-webkit-details-marker]:hidden">
+          <span>
+            Search &amp; filter
+            {summary && <span className="ml-2 font-normal text-accent">{summary}</span>}
+          </span>
+          <span aria-hidden className="text-xs">
+            ▾
+          </span>
+        </summary>
+        <div className="mt-3 md:mt-0 md:block">{body}</div>
+      </details>
     </form>
   );
 }
@@ -120,8 +155,10 @@ export function AdminHeading({
   action?: { href: string; label: string };
 }) {
   return (
-    <div className="mb-6 flex items-center justify-between">
-      <h1 className="font-display text-3xl uppercase">{title}</h1>
+    /* pl-14 on mobile clears the fixed sidebar menu button, which overlaps this
+       row and nothing below it. See the comment in (panel)/layout.tsx. */
+    <div className="mb-6 flex items-center justify-between pl-14 md:pl-0">
+      <h1 className="font-display text-2xl uppercase sm:text-3xl">{title}</h1>
       {action && (
         <Link
           href={action.href}
@@ -139,16 +176,19 @@ export function AdminTable({
   children,
   /** Square off the top so a tab bar can sit flush against it. */
   flush = false,
+  /** Extra classes on the wrapper — e.g. hiding the table in favour of cards. */
+  className = "",
 }: {
   headers: string[];
   children: ReactNode;
   flush?: boolean;
+  className?: string;
 }) {
   return (
     <div
       className={`overflow-x-auto border border-line ${
         flush ? "rounded-b-2xl border-t-0" : "rounded-2xl"
-      }`}
+      } ${className}`}
     >
       <table className="w-full text-left text-sm">
         <thead className="bg-ink-soft text-xs uppercase tracking-wider text-muted">

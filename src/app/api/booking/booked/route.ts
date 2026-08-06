@@ -11,6 +11,8 @@ import {
 } from "@/lib/whatsapp";
 import { rateLimit } from "@/lib/rate-limit";
 import { verifyCalendlyEvent } from "@/lib/calendly";
+import { sendAdminPush } from "@/lib/push";
+import { bookingConfirmedNotification } from "@/lib/pushTemplate";
 
 /**
  * Marks a booking `booked` once the client schedules a Calendly slot (the
@@ -119,6 +121,18 @@ export async function POST(request: Request) {
       ),
       sendTwilioWhatsAppCustomer(booking.whatsapp, payload).then((result) =>
         record("customer", booking.whatsapp, result),
+      ),
+      // Buzzes the installed admin app. Never throws; a missing VAPID key is a
+      // silent no-op, exactly like an unconfigured Twilio.
+      sendAdminPush(bookingConfirmedNotification({ ...booking, scheduledAt })).then((result) =>
+        audit({
+          actor: "public",
+          action: "push_notify",
+          entityType: "lead",
+          entityId: bookingId,
+          after: { kind: "booking_confirmed", ...result },
+          ip,
+        }),
       ),
     ]);
   });

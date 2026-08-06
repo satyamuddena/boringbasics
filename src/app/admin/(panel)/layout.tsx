@@ -101,8 +101,13 @@ export default async function AdminPanelLayout({
           </>
         }
       />
-      {/* Left padding on mobile clears the fixed menu button. */}
-      <div className="min-w-0 flex-1 p-6 pl-16 md:p-10 md:pl-10">{children}</div>
+      {/*
+        The fixed menu button only occupies the top-left corner, so only the
+        page heading needs to dodge it (AdminHeading carries that clearance).
+        Indenting the whole column instead would cost 40px of width down the
+        entire page — 17% of a 375px phone, which the booking cards need.
+      */}
+      <div className="min-w-0 flex-1 p-4 sm:p-6 md:p-10">{children}</div>
     </div>
   );
 }

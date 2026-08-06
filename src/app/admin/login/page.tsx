@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getAdmin } from "@/lib/auth";
+import { safeNextPath } from "@/lib/nextPath";
 import { LoginForm } from "./LoginForm";
 import { BrandLogo } from "@/components/BrandLogo";
 import { getSite, getTrainer } from "@/lib/content";
@@ -12,8 +13,15 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminLoginPage() {
-  if (await getAdmin()) redirect("/admin");
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  // Validated here as well as in the action: this value reaches a hidden field,
+  // and an unchecked one would be an open redirect waiting for a crafted link.
+  const next = safeNextPath((await searchParams).next);
+  if (await getAdmin()) redirect(next ?? "/admin");
   const [site, trainer] = await Promise.all([getSite(), getTrainer()]);
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
@@ -21,7 +29,7 @@ export default async function AdminLoginPage() {
         <BrandLogo logoPath={site.logoPath} brandName={trainer.brand} openInNewTab />
         <h1 className="mt-4 font-display text-2xl uppercase">Admin</h1>
         <p className="mt-1 text-sm text-muted">Sign in to manage the site.</p>
-        <LoginForm />
+        <LoginForm next={next} />
       </div>
     </div>
   );

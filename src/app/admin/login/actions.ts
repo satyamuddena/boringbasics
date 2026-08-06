@@ -3,8 +3,9 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { and, eq, gt, sql } from "drizzle-orm";
-import { login, requestMeta } from "@/lib/auth";
+import { login, requestMeta, SESSION_COOKIE_MAX_AGE_SEC } from "@/lib/auth";
 import { SESSION_COOKIE } from "@/lib/constants";
+import { safeNextPath } from "@/lib/nextPath";
 import { audit } from "@/lib/audit";
 import { getDb, schema as t } from "@/db";
 import { str } from "@/lib/forms";
@@ -47,7 +48,9 @@ export async function loginAction(_prev: { error?: string } | null, formData: Fo
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 14,
+    // The absolute cap, not the idle window — the DB owns idle expiry, because
+    // cookies cannot be re-issued from a server component render. See auth.ts.
+    maxAge: SESSION_COOKIE_MAX_AGE_SEC,
   });
-  redirect("/admin");
+  redirect(safeNextPath(formData.get("next")) ?? "/admin");
 }

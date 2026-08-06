@@ -3,10 +3,11 @@
 import { useActionState } from "react";
 import { loginAction } from "./actions";
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string | null }) {
   const [state, action, pending] = useActionState(loginAction, null);
   return (
     <form action={action} className="mt-6 space-y-4">
+      {next && <input type="hidden" name="next" value={next} />}
       <label className="block">
         <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted">
           Email

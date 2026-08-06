@@ -3,6 +3,8 @@ import { getDb, schema as t } from "@/db";
 import { AdminHeading, AdminListControls, AdminTable, Field, Input, Select, StatusPill } from "@/components/admin/ui";
 import { BookingStageSummary } from "@/components/admin/BookingProgressBar";
 import { BookingTabs, type BookingTab } from "@/components/admin/BookingTabs";
+import { BookingCard } from "@/components/admin/BookingCard";
+import { PushToggle } from "@/components/admin/PushToggle";
 import { setLeadStatusAction } from "./actions";
 import { BookingDetails, type NotifyRecord } from "./BookingDetails";
 import { LeadWhatsAppButton } from "./LeadWhatsAppButton";
@@ -195,9 +197,45 @@ export default async function LeadsAdminPage({
     return b.id - a.id;
   });
 
+  /**
+   * Everything each row needs, derived once. The phone cards and the desktop
+   * table both render from this, so the follow-up wording can never drift
+   * between the two layouts.
+   */
+  const rows = leads.map((lead) => {
+    const progress = progressFor.get(lead.id)!;
+    const followupText =
+      lead.stage === "paid"
+        ? `Hi ${lead.name}, your ${trainer.brand} consultation payment is received. Please pick your slot, or reply here and I'll help you schedule it. Booking ID: #${lead.id}`
+        : `Hi ${lead.name}, I noticed you started booking a ${trainer.brand} consultation. Do you need help completing payment or choosing a slot? Booking ID: #${lead.id}`;
+    return {
+      lead,
+      progress,
+      notify: notifications.get(lead.id),
+      whatsappText: progress.needsFollowup
+        ? followupText
+        : `Hi ${lead.name}, this is regarding your ${trainer.brand} consultation booking #${lead.id}.`,
+    };
+  });
+
+  const emptyMessage =
+    allLeads.length === 0
+      ? "No bookings yet."
+      : query || status
+        ? "Nothing here matches your search."
+        : (EMPTY_TAB[activeTab] ?? "Nothing here.");
+
+  /** Keeps active filters visible while the panel is collapsed on a phone. */
+  const filterSummary =
+    [q && `“${q}”`, status && FOLLOWUP_LABEL[status], sort !== "newest" && "custom order"]
+      .filter(Boolean)
+      .join(" · ") || undefined;
+
   return (
     <>
       <AdminHeading title="Bookings" />
+
+      <PushToggle className="mb-4" />
 
       {waLead && (
         <div
@@ -217,7 +255,11 @@ export default async function LeadsAdminPage({
         </div>
       )}
 
-      <AdminListControls resetHref="/admin/leads">
+      <AdminListControls
+        resetHref="/admin/leads"
+        collapseOnMobile
+        summary={filterSummary}
+      >
         {/* Applying a filter must not throw you back to the first tab. */}
         <input type="hidden" name="tab" value={activeTab} />
         <Field label="Search">
@@ -244,21 +286,42 @@ export default async function LeadsAdminPage({
 
       <BookingTabs tabs={tabs} active={activeTab} />
 
+      {/* Cards on a phone, the table from md up. Both render the same rows —
+          derived once here so the two layouts can never disagree. */}
+      <ul className="rounded-b-2xl border border-t-0 border-line bg-ink-card md:hidden">
+        {rows.map(({ lead: l, progress, whatsappText, notify }) => (
+          <BookingCard
+            key={l.id}
+            lead={l}
+            progress={progress}
+            followupLabel={FOLLOWUP_LABEL[l.status] ?? l.status}
+            notify={notify}
+            now={now}
+          >
+            <BookingDetails booking={l} notify={notify} />
+            <LeadWhatsAppButton
+              leadId={l.id}
+              href={whatsappHref(l.whatsapp, whatsappText)}
+              highlight={progress.needsFollowup}
+            />
+            {l.status !== "closed" && (
+              <form action={setLeadStatusAction.bind(null, l.id, "closed")}>
+                <button className="rounded-lg border border-line px-2 py-1 text-xs text-muted hover:border-accent hover:text-accent">
+                  Close
+                </button>
+              </form>
+            )}
+          </BookingCard>
+        ))}
+        {leads.length === 0 && <li className="p-8 text-center text-sm text-muted">{emptyMessage}</li>}
+      </ul>
+
       <AdminTable
         flush
+        className="hidden md:block"
         headers={["Who", "How far they got", "What to do", "Call time", "Came in", ""]}
       >
-        {leads.map((l) => {
-          const progress = progressFor.get(l.id)!;
-          const followupText =
-            l.stage === "paid"
-              ? `Hi ${l.name}, your ${trainer.brand} consultation payment is received. Please pick your slot, or reply here and I'll help you schedule it. Booking ID: #${l.id}`
-              : `Hi ${l.name}, I noticed you started booking a ${trainer.brand} consultation. Do you need help completing payment or choosing a slot? Booking ID: #${l.id}`;
-          const whatsappText = progress.needsFollowup
-            ? followupText
-            : `Hi ${l.name}, this is regarding your ${trainer.brand} consultation booking #${l.id}.`;
-          const notify = notifications.get(l.id);
-
+        {rows.map(({ lead: l, progress, whatsappText, notify }) => {
           return (
           <tr key={l.id} className={progress.needsFollowup ? "bg-warn/5" : undefined}>
             <td className="px-4 py-3">
@@ -345,11 +408,7 @@ export default async function LeadsAdminPage({
         {leads.length === 0 && (
           <tr>
             <td colSpan={6} className="px-4 py-10 text-center text-muted">
-              {allLeads.length === 0
-                ? "No bookings yet."
-                : query || status
-                  ? "Nothing here matches your search."
-                  : (EMPTY_TAB[activeTab] ?? "Nothing here.")}
+              {emptyMessage}
             </td>
           </tr>
         )}

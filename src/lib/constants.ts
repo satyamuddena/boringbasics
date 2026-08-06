@@ -1,6 +1,13 @@
 /** Shared with proxy.ts — keep this file dependency-free. */
 export const SESSION_COOKIE = "admin_session";
 
+/**
+ * Request header the proxy uses to tell server components which admin URL was
+ * asked for, so a login redirect can carry a `?next=` back to it. Request-only:
+ * it is never sent to the browser.
+ */
+export const ADMIN_PATH_HEADER = "x-admin-path";
+
 /** Day labels for the popup availability pickers (order matters). */
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 

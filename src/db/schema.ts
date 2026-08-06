@@ -242,11 +242,47 @@ export const sessions = sqliteTable(
       .references(() => users.id),
     createdAt: text("created_at").notNull(),
     expiresAt: text("expires_at").notNull(),
+    /**
+     * Last request this session served, throttled to one write an hour. Drives
+     * the sliding idle window (see sessionCore.ts) and the "last used" column
+     * on the signed-in devices list. Null for sessions created before 0019.
+     */
+    lastUsedAt: text("last_used_at"),
     ip: text("ip"),
     userAgent: text("user_agent"),
   },
   (t) => [primaryKey({ columns: [t.tokenHash] })],
 );
+
+/**
+ * Web Push endpoints for the installable admin app, one row per browser.
+ *
+ * Deliberately keyed to the user rather than the session: a session going
+ * idle-cold must not stop the phone buzzing, or the trainer silently stops
+ * hearing about bookings a month after they last opened the app. Only an
+ * explicit sign-out, a revoke, or a dead endpoint removes a row.
+ */
+export const pushSubscriptions = sqliteTable("push_subscriptions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  /** Push service URL — unique so re-subscribing upserts instead of duplicating. */
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  /**
+   * Which login registered this device, so revoking a lost phone's session can
+   * take its notifications with it. Nullable with NO cascade on purpose:
+   * login() prunes expired sessions, and a cascade there would delete the
+   * subscription on exactly the idle-expiry case this table exists to survive.
+   */
+  sessionTokenHash: text("session_token_hash"),
+  userAgent: text("user_agent"),
+  createdAt: text("created_at").notNull(),
+  lastSeenAt: text("last_seen_at"),
+  failureCount: integer("failure_count").notNull().default(0),
+});
 
 /* ------------------------------------------------------------------ */
 /*  Audit log — append-only; no update/delete code paths exist.        */

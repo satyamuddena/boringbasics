@@ -5,19 +5,22 @@ import { AdminCard, AdminHeading, Field, Input, Textarea, Select, Checkbox, Subm
 import { DAYS, HIDEABLE_PAGES } from "@/lib/constants";
 import { saveSettingsAction } from "./actions";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { SignedInDevices } from "@/components/admin/SignedInDevices";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; revoked?: string }>;
 }) {
-  const [{ saved }, site, consultation, trainer] = await Promise.all([
+  const [{ saved, revoked }, site, consultation, trainer, admin] = await Promise.all([
     searchParams,
     getSite(),
     getConsultation(),
     getTrainer(),
+    requireAdmin(),
   ]);
   const settings = getDb().select().from(t.siteSettings).where(eq(t.siteSettings.id, 1)).get();
 
@@ -27,6 +30,11 @@ export default async function SettingsAdminPage({
       {saved && (
         <p className="mb-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
           Saved.
+        </p>
+      )}
+      {revoked && (
+        <p className="mb-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
+          That device has been signed out and will no longer receive booking notifications.
         </p>
       )}
       <form action={saveSettingsAction} className="max-w-3xl space-y-6">
@@ -233,6 +241,11 @@ export default async function SettingsAdminPage({
 
         <SubmitButton>Save settings</SubmitButton>
       </form>
+
+      {/* Outside the settings form on purpose — each row submits its own. */}
+      <div className="mt-6 max-w-3xl">
+        <SignedInDevices userId={admin.id} />
+      </div>
     </>
   );
 }

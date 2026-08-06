@@ -21,6 +21,19 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        /**
+         * Browsers may reuse a cached service worker for up to 24 hours. Without
+         * this the installed admin app can keep running a worker from a previous
+         * deploy, which is the one way this otherwise cache-free PWA could go
+         * stale. Scope header included so the worker can control /admin from /.
+         */
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },

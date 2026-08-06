@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { audit } from "@/lib/audit";
 import { getConsultation, getTestPaymentEnabled } from "@/lib/content";
 import { paymentBypassAllowed } from "@/lib/razorpay";
 import { rateLimit } from "@/lib/rate-limit";
+import { sendAdminPush } from "@/lib/push";
+import { paymentReceivedNotification } from "@/lib/pushTemplate";
 
 /**
  * Test-only: marks a booking `paid` without a real charge so the rest of the
@@ -57,14 +59,29 @@ export async function POST(request: Request) {
     })
     .where(eq(t.leads.id, bookingId))
     .run();
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   audit({
     actor: "public",
     action: "payment_bypass",
     entityType: "lead",
     entityId: bookingId,
     after: { note: "test bypass — no charge" },
-    ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
+    ip,
     userAgent: request.headers.get("user-agent"),
+  });
+
+  // Same notification as a real payment: this is the path used to rehearse the
+  // booking flow, so it has to exercise the alerts too or it proves nothing.
+  after(async () => {
+    const result = await sendAdminPush(paymentReceivedNotification(booking));
+    audit({
+      actor: "public",
+      action: "push_notify",
+      entityType: "lead",
+      entityId: bookingId,
+      after: { kind: "payment_received", bypass: true, ...result },
+      ip,
+    });
   });
 
   return NextResponse.json({ ok: true });

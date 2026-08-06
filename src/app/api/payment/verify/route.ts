@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { audit } from "@/lib/audit";
 import { verifyPaymentSignature } from "@/lib/razorpay";
 import { rateLimit } from "@/lib/rate-limit";
+import { sendAdminPush } from "@/lib/push";
+import { paymentReceivedNotification } from "@/lib/pushTemplate";
 
 /**
  * Verifies a Razorpay checkout signature (HMAC over orderId|paymentId) and
@@ -65,13 +67,28 @@ export async function POST(request: Request) {
     .set({ stage: "paid", razorpayPaymentId: paymentId, paidAt: new Date().toISOString() })
     .where(eq(t.leads.id, bookingId))
     .run();
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   audit({
     actor: "public",
     action: "payment_paid",
     entityType: "lead",
     entityId: bookingId,
     after: { orderId, paymentId },
-    ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
+    ip,
+  });
+
+  // The payment is already recorded; notifying runs after the response so a
+  // slow push service can never hold up the customer's checkout screen.
+  after(async () => {
+    const result = await sendAdminPush(paymentReceivedNotification(booking));
+    audit({
+      actor: "public",
+      action: "push_notify",
+      entityType: "lead",
+      entityId: bookingId,
+      after: { kind: "payment_received", ...result },
+      ip,
+    });
   });
 
   return NextResponse.json({ ok: true });
