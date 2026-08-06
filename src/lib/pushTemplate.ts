@@ -30,6 +30,34 @@ export interface PushBookingInput {
   [ignored: string]: unknown;
 }
 
+/**
+ * The VAPID `sub` claim: a contact URI push services can use to reach whoever
+ * is sending. Not a credential, and never shown to a user.
+ *
+ * Forgiving on purpose. The value is a URI, but the thing anyone actually has
+ * to hand is an email address — so a bare one is promoted rather than rejected,
+ * and an unset subject falls back to the admin login, which is guaranteed to be
+ * a real monitored mailbox. web-push throws on anything that is not mailto: or
+ * https:, and that failure would otherwise appear only as "no notifications".
+ *
+ * Lives here rather than in push.ts so it can be tested without `server-only`.
+ */
+export function vapidSubject(
+  configured: string | undefined,
+  adminEmail: string | undefined,
+  fallback = "mailto:admin@boringbasics.fit",
+): string {
+  const candidates = [configured?.trim(), adminEmail?.trim()];
+  for (const value of candidates) {
+    if (!value) continue;
+    if (/^(mailto:|https:\/\/)/i.test(value)) return value;
+    // A bare address — the likeliest way to fill this in by hand.
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return `mailto:${value}`;
+    // Anything else (http://, a hostname, junk) is not usable; try the next.
+  }
+  return fallback;
+}
+
 /** Leading word of a name, or a neutral stand-in. Never the surname. */
 export function firstName(raw: string | null | undefined): string {
   const first = raw?.trim().split(/\s+/)[0]?.trim();
