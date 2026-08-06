@@ -11,6 +11,7 @@ export type NavIconName =
   | "bookings"
   | "whatsapp"
   | "payments"
+  | "bell"
   | "sync"
   | "settings"
   | "audit";
@@ -84,6 +85,12 @@ const PATHS: Record<NavIconName, React.ReactNode> = {
     <>
       <rect x="2.5" y="5.5" width="19" height="13" rx="2" />
       <path d="M2.5 10h19M6 14.5h3" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
     </>
   ),
   sync: (

@@ -177,3 +177,39 @@ keep that true, and they are deliberate:
 **The one exception:** the app name, icon and `start_url` are read by the OS at install time
 and cached there. Changing them needs a remove-and-re-add on each phone. Regenerate icons
 with `npx tsx scripts/generate-icons.ts` after changing the brand mark, and commit the PNGs.
+
+## Testing without waiting for a real booking
+
+`/admin/push-test` is the notification equivalent of the WhatsApp and Razorpay test
+pages. It answers the question the phone cannot: *why did nothing arrive?*
+
+It reports, in order:
+
+1. **Configuration** — whether each VAPID variable is set, and which subject is actually
+   in use (an unset `VAPID_SUBJECT` falls back to `ADMIN_EMAIL`, and the page says so).
+   The private key is never displayed.
+2. **A per-device outcome** for the last send — device, push service, sent/failed/removed,
+   and the HTTP status. Aggregate counts cannot tell you *which* of three phones is
+   failing; this can.
+3. **Previews** of all three notifications, built by the same functions the real triggers
+   use. The sample booking deliberately carries a surname, phone number, email and amount
+   so you can see that none of them reach the text.
+4. **Registered devices**, so you can confirm a phone actually subscribed.
+
+Sending to "My devices" only buzzes phones you signed in on; "Every registered device"
+is opt-in because it reaches other people's phones.
+
+### Reading a failure
+
+| What you see | What it means |
+| --- | --- |
+| `nothing was sent — No devices have notifications turned on` | No phone has subscribed. Install the app and press Turn on. |
+| `Push is not configured` | VAPID variables missing or malformed. The banner names them. |
+| `failed (400)` | The push service rejected the request — usually a stale or malformed subscription. |
+| `failed (403)` | The VAPID keys do not match the ones the device subscribed with. Rotating keys does this; every device must re-subscribe. |
+| `removed (410)` | The device is gone for good. The row is deleted automatically. |
+| `0 sent, 0 failed` after a send | Nothing matched the audience you picked. |
+
+A successful send only means the push service accepted it. If the phone still shows
+nothing, the app was probably in the foreground, or notifications are muted in iOS
+Settings for that app.

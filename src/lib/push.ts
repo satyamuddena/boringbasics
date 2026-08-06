@@ -13,6 +13,17 @@ import { vapidSubject, type AdminPushNotification } from "@/lib/pushTemplate";
  * notification must never disturb the booking it is reporting on.
  */
 
+/** What happened to one device. Aggregate counts can't answer "which one?". */
+export interface PushDeviceOutcome {
+  id: number;
+  device: string;
+  /** Apple / Google / Mozilla — inferred from the endpoint host. */
+  service: string;
+  outcome: "sent" | "failed" | "pruned";
+  statusCode?: number;
+  error?: string;
+}
+
 export interface PushSendResult {
   /** True when at least one device accepted the notification. */
   ok: boolean;
@@ -23,6 +34,26 @@ export interface PushSendResult {
   /** Set when nothing was attempted, e.g. no VAPID keys or no subscribers. */
   skipped?: string;
   error?: string;
+  /**
+   * Per-device results, in the order attempted. Populated for every send; the
+   * booking triggers ignore it, the test page is the reason it exists — "one of
+   * your three phones is failing with 403" is the answer someone actually needs.
+   */
+  devices?: PushDeviceOutcome[];
+}
+
+/** Which push service an endpoint belongs to, for display only. */
+export function pushService(endpoint: string): string {
+  try {
+    const host = new URL(endpoint).host;
+    if (host.includes("apple")) return "Apple";
+    if (host.includes("google") || host.includes("fcm")) return "Google";
+    if (host.includes("mozilla")) return "Mozilla";
+    if (host.includes("microsoft") || host.includes("windows")) return "Microsoft";
+    return host;
+  } catch {
+    return "unknown";
+  }
 }
 
 const NOOP: PushSendResult = { ok: false, sent: 0, failed: 0, pruned: 0 };
@@ -73,6 +104,39 @@ export function pushConfigured(): boolean {
 }
 
 /**
+ * Everything the test page needs to explain a silent failure, without ever
+ * returning the private key. Reports the subject that will actually be used
+ * rather than the raw variable, since an unset one falls back to the admin
+ * login and that is worth seeing.
+ */
+export function pushDiagnostics(): {
+  publicKeySet: boolean;
+  privateKeySet: boolean;
+  subject: string;
+  subjectSource: "VAPID_SUBJECT" | "ADMIN_EMAIL" | "built-in fallback";
+  ready: boolean;
+  problem?: string;
+} {
+  const publicKeySet = Boolean(process.env.VAPID_PUBLIC_KEY?.trim());
+  const privateKeySet = Boolean(process.env.VAPID_PRIVATE_KEY?.trim());
+  const configuredSubject = process.env.VAPID_SUBJECT?.trim();
+  const subject = vapidSubject(configuredSubject, process.env.ADMIN_EMAIL);
+  const ready = vapidReady();
+  return {
+    publicKeySet,
+    privateKeySet,
+    subject,
+    subjectSource: configuredSubject
+      ? "VAPID_SUBJECT"
+      : subject.includes(process.env.ADMIN_EMAIL?.trim() ?? "\0")
+        ? "ADMIN_EMAIL"
+        : "built-in fallback",
+    ready: ready.ok,
+    problem: ready.ok ? undefined : ready.reason,
+  };
+}
+
+/**
  * 404/410 mean the browser threw the subscription away — uninstalled app,
  * cleared site data, permission reset. That is the documented signal to forget
  * it, and not doing so leaves the table growing with endpoints that can never
@@ -108,11 +172,26 @@ export async function sendAdminPush(
 
   const payload = JSON.stringify(notification);
   const dead: number[] = [];
+  const devices: PushDeviceOutcome[] = [];
   let sent = 0;
   let failed = 0;
   let lastError: string | undefined;
 
   const attempts = subs.map(async (sub) => {
+    const describe = (
+      outcome: PushDeviceOutcome["outcome"],
+      statusCode?: number,
+      error?: string,
+    ) => {
+      devices.push({
+        id: sub.id,
+        device: sub.userAgent ?? "Unknown device",
+        service: pushService(sub.endpoint),
+        outcome,
+        statusCode,
+        error,
+      });
+    };
     try {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
@@ -120,15 +199,19 @@ export async function sendAdminPush(
         { TTL: 60 * 60 * 12 },
       );
       sent += 1;
+      describe("sent");
     } catch (error) {
       const status = (error as WebPushError)?.statusCode;
+      const detail = (error as Error)?.message;
       if (isGone(status)) {
         dead.push(sub.id);
+        describe("pruned", status, "The push service says this device is gone.");
         return;
       }
       failed += 1;
       lastError = `Push service returned ${status ?? "no status"}.`;
-      console.error("[push] delivery failed:", status, (error as Error)?.message);
+      describe("failed", status, detail);
+      console.error("[push] delivery failed:", status, detail);
     }
   });
   await Promise.allSettled(attempts);
@@ -137,7 +220,7 @@ export async function sendAdminPush(
     db.delete(t.pushSubscriptions).where(inArray(t.pushSubscriptions.id, dead)).run();
   }
 
-  return { ok: sent > 0, sent, failed, pruned: dead.length, error: lastError };
+  return { ok: sent > 0, sent, failed, pruned: dead.length, error: lastError, devices };
 }
 
 /** Records a device's subscription, replacing any earlier row for the same endpoint. */

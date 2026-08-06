@@ -33,6 +33,7 @@ const navSections: NavSection[] = [
       { label: "Bookings", href: "/admin/leads", icon: "bookings" },
       { label: "WhatsApp Test", href: "/admin/whatsapp-test", icon: "whatsapp" },
       { label: "Razorpay Test", href: "/admin/razorpay-test", icon: "payments" },
+      { label: "Notification Test", href: "/admin/push-test", icon: "bell" },
       { label: "Data Sync", href: "/admin/sync", icon: "sync" },
     ],
   },
