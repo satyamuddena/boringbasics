@@ -18,7 +18,7 @@ export default async function AdminLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-2xl border border-line bg-ink-card p-8">
-        <BrandLogo logoPath={site.logoPath} brandName={trainer.brand} />
+        <BrandLogo logoPath={site.logoPath} brandName={trainer.brand} openInNewTab />
         <h1 className="mt-4 font-display text-2xl uppercase">Admin</h1>
         <p className="mt-1 text-sm text-muted">Sign in to manage the site.</p>
         <LoginForm />

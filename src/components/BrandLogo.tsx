@@ -6,6 +6,7 @@ type BrandLogoProps = {
   className?: string;
   wordmarkClassName?: string;
   tagline?: string;
+  openInNewTab?: boolean;
 };
 
 function BrandMark({
@@ -36,6 +37,7 @@ export function BrandLogo({
   brandName = "Boring Basics",
   wordmarkClassName = "text-xl tracking-[0.08em]",
   tagline,
+  openInNewTab = false,
 }: BrandLogoProps & { logoPath?: string; brandName?: string }) {
   const words = brandName.trim().split(/\s+/);
   const accentWord = words.pop() || brandName;
@@ -47,6 +49,8 @@ export function BrandLogo({
   return (
     <Link
       href="/"
+      target={openInNewTab ? "_blank" : undefined}
+      rel={openInNewTab ? "noopener noreferrer" : undefined}
       aria-label={`${brandName} home`}
       className={`inline-flex items-center gap-2.5 ${className}`}
     >

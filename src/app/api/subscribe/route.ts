@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { email?: string; name?: string; company?: string };
+  let body: { email?: string; name?: string; bot_check_xyz?: string };
   try {
     body = await request.json();
   } catch {
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   // Honeypot: real users never fill this.
-  if (body.company && body.company.trim() !== "") {
+  if (body.bot_check_xyz && body.bot_check_xyz.trim() !== "") {
     return NextResponse.json({ ok: true });
   }
 

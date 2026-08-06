@@ -7,7 +7,7 @@ type Status = "idle" | "submitting" | "success" | "error";
 /** Footer newsletter signup — posts to /api/subscribe. */
 export function SubscribeBox() {
   const [email, setEmail] = useState("");
-  const [company, setCompany] = useState(""); // honeypot
+  const [botCheck, setBotCheck] = useState(""); // honeypot
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
 
@@ -19,7 +19,7 @@ export function SubscribeBox() {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, company }),
+        body: JSON.stringify({ email, bot_check_xyz: botCheck }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -67,13 +67,13 @@ export function SubscribeBox() {
       {/* Honeypot — hidden from users, catches bots */}
       <div className="absolute left-[-9999px]" aria-hidden>
         <label>
-          Company
+          Leave this empty
           <input
             type="text"
             tabIndex={-1}
             autoComplete="off"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
+            value={botCheck}
+            onChange={(e) => setBotCheck(e.target.value)}
           />
         </label>
       </div>
