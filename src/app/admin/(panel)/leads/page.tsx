@@ -14,9 +14,12 @@ import {
   type BookingTabKey,
 } from "@/lib/bookingProgress";
 import { syncStaleCalendlyEvents } from "@/lib/calendlySync";
+import { whatsAppDelivery } from "@/lib/whatsappDelivery";
 import { getTrainer } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
+
+const TONE_CLASS = { ok: "text-ok", warn: "text-warn", bad: "text-bad" } as const;
 
 /** What an empty tab should say — silence on the busiest tab is good news. */
 const EMPTY_TAB: Record<string, string> = {
@@ -38,6 +41,10 @@ const FOLLOWUP_LABEL: Record<string, string> = {
 /**
  * Latest notification result per lead per audience. Read from the audit log so
  * no extra table is needed — rows arrive newest-first and the first hit wins.
+ *
+ * Delivery receipts fetched later by "Check if it arrived" are merged in on top
+ * of the send record. Without that, checking a message told you the truth once
+ * and the screen went straight back to showing the send-time guess.
  */
 function loadNotifications(): Map<number, Partial<Record<"trainer" | "customer", NotifyRecord>>> {
   const byLead = new Map<number, Partial<Record<"trainer" | "customer", NotifyRecord>>>();
@@ -60,6 +67,41 @@ function loadNotifications(): Map<number, Partial<Record<"trainer" | "customer",
     const existing = byLead.get(leadId) ?? {};
     if (existing[audience]) continue; // newest already recorded
     byLead.set(leadId, { ...existing, [audience]: record });
+  }
+
+  // Newest receipt per message SID, applied to whichever send it belongs to.
+  const receipts = new Map<string, NotifyRecord>();
+  for (const row of getDb()
+    .select()
+    .from(t.auditLog)
+    .where(and(eq(t.auditLog.action, "whatsapp_status_check"), eq(t.auditLog.entityType, "lead")))
+    .orderBy(desc(t.auditLog.id))
+    .all()) {
+    if (!row.afterJson) continue;
+    try {
+      const check = JSON.parse(row.afterJson) as NotifyRecord;
+      if (check.sid && !receipts.has(check.sid)) receipts.set(check.sid, check);
+    } catch {
+      continue;
+    }
+  }
+  if (receipts.size) {
+    for (const [leadId, audiences] of byLead) {
+      const merged = { ...audiences };
+      for (const audience of ["trainer", "customer"] as const) {
+        const note = merged[audience];
+        const receipt = note?.sid ? receipts.get(note.sid) : undefined;
+        if (note && receipt?.status) {
+          merged[audience] = {
+            ...note,
+            status: receipt.status,
+            errorCode: receipt.errorCode ?? note.errorCode,
+            error: receipt.error ?? note.error,
+          };
+        }
+      }
+      byLead.set(leadId, merged);
+    }
   }
   return byLead;
 }
@@ -265,10 +307,12 @@ export default async function LeadsAdminPage({
               {(["trainer", "customer"] as const).map((audience) => {
                 const note = notify?.[audience];
                 if (!note) return null;
+                // Never claim receipt we cannot evidence — Twilio accepting a
+                // message is not WhatsApp delivering it.
+                const delivery = whatsAppDelivery(note);
                 return (
-                  <span key={audience} className={`mt-0.5 block ${note.ok ? "text-ok" : "text-bad"}`}>
-                    {audience === "trainer" ? "You" : "They"} got the message:{" "}
-                    {note.ok ? "yes" : "no"}
+                  <span key={audience} className={`mt-0.5 block ${TONE_CLASS[delivery.tone]}`}>
+                    {audience === "trainer" ? "Yours" : "Theirs"}: {delivery.text}
                   </span>
                 );
               })}

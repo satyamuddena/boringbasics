@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { BookingNextStep, BookingProgressBar } from "@/components/admin/BookingProgressBar";
 import { ageLabel, bookingProgress, fullDateTime, money } from "@/lib/bookingProgress";
+import { whatsAppDelivery } from "@/lib/whatsappDelivery";
 import {
   checkBookingWhatsAppAction,
   refreshCalendlySlotAction,
@@ -51,13 +52,7 @@ const FOLLOWUP_LABEL: Record<string, string> = {
   closed: "Closed",
 };
 
-/** The Twilio failures that actually happen, in words a trainer understands. */
-const WHATSAPP_ERROR: Record<number, string> = {
-  63003: "that number is not on WhatsApp",
-  63016: "they have not messaged us first, so WhatsApp blocked it",
-  63024: "the message template was rejected",
-  21211: "the phone number looks wrong",
-};
+const TONE_CLASS = { ok: "text-ok", warn: "text-warn", bad: "text-bad" } as const;
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -97,19 +92,17 @@ function NotifyLine({
       </div>
     );
   }
-  const reason = note.errorCode ? WHATSAPP_ERROR[note.errorCode] : null;
+  const delivery = whatsAppDelivery(note);
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
       <span className="text-sm text-muted">{label}</span>
       <span className="min-w-0 text-right">
-        <span className={`text-sm ${note.ok ? "text-ok" : "text-bad"}`}>
-          {note.ok ? "Sent" : "Did not send"}
-          {!note.ok && reason ? ` — ${reason}` : ""}
-        </span>
-        {!note.ok && !reason && note.error && (
+        <span className={`text-sm ${TONE_CLASS[delivery.tone]}`}>{delivery.text}</span>
+        {note.ok === false && !note.errorCode && note.error && (
           <span className="block text-xs text-muted">{note.error}</span>
         )}
-        {note.ok && note.sid && (
+        {/* Twilio only says "queued" on send, so the receipt has to be asked for. */}
+        {note.ok !== false && !delivery.confirmed && note.sid && (
           <form action={checkBookingWhatsAppAction.bind(null, note.sid, leadId)}>
             <button className="mt-0.5 text-xs text-muted underline transition-colors hover:text-accent">
               Check if it arrived
