@@ -5,7 +5,7 @@ import { BookingStageSummary } from "@/components/admin/BookingProgressBar";
 import { BookingTabs, type BookingTab } from "@/components/admin/BookingTabs";
 import { setLeadStatusAction } from "./actions";
 import { BookingDetails, type NotifyRecord } from "./BookingDetails";
-import { WhatsAppButton } from "./WhatsAppButton";
+import { LeadWhatsAppButton } from "./LeadWhatsAppButton";
 import {
   ageLabel,
   bookingProgress,
@@ -281,7 +281,7 @@ export default async function LeadsAdminPage({
               <div className="flex flex-wrap gap-2">
                 <BookingDetails booking={l} notify={notify} />
                 {/* Opening the chat records the contact — no separate button. */}
-                <WhatsAppButton
+                <LeadWhatsAppButton
                   leadId={l.id}
                   href={whatsappHref(l.whatsapp, whatsappText)}
                   highlight={progress.needsFollowup}

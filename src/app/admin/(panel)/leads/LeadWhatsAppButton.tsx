@@ -5,12 +5,15 @@ import { markContactedAction } from "./actions";
 /**
  * Opens the lead's WhatsApp chat and records that we contacted them.
  *
+ * Named apart from the public site's `WhatsAppButton` (components/) on purpose —
+ * that one is the floating chat bubble for visitors, this one acts on a lead.
+ *
  * Deliberately a plain anchor rather than a form: the browser opens the new tab
  * from the real click, so nothing is swallowed by a popup blocker, and the
  * server action runs alongside it. If that action fails the chat still opens —
  * losing the timestamp is far cheaper than blocking the trainer.
  */
-export function WhatsAppButton({
+export function LeadWhatsAppButton({
   leadId,
   href,
   label = "WhatsApp",

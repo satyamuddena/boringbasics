@@ -8,7 +8,7 @@ import {
   refreshCalendlySlotAction,
   setLeadStatusAction,
 } from "./actions";
-import { WhatsAppButton } from "./WhatsAppButton";
+import { LeadWhatsAppButton } from "./LeadWhatsAppButton";
 
 export interface NotifyRecord {
   audience?: "trainer" | "customer";
@@ -196,7 +196,7 @@ export function BookingDetails({
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <WhatsAppButton
+              <LeadWhatsAppButton
                 leadId={booking.id}
                 href={`https://wa.me/${booking.whatsapp.replace(/\D/g, "")}`}
                 label={`Message ${firstName}`}
