@@ -1,0 +1,21 @@
+# Type checking moved off the deployment box, where it was being killed for
+# memory with no error output. This is where it lives now — a build must never
+# be the first place a type error is noticed.
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run verify

@@ -1,0 +1,12 @@
+# Keep local state out of the image. Without this, `COPY . .` bakes the
+# development SQLite database — real leads, phone numbers and payment ids —
+# into every published layer, where DATA_DIR=/data means it is never even read.
+data
+.env
+.env.*
+
+# Rebuilt inside the container, or simply not needed to build.
+.git
+.next
+node_modules
+tsconfig.tsbuildinfo
