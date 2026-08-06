@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 /* Shared admin UI primitives — same design tokens as the public site. */
 
@@ -68,11 +68,16 @@ export function Checkbox({ label, ...props }: { label: string } & React.InputHTM
   );
 }
 
-export function SubmitButton({ children = "Save" }: { children?: ReactNode }) {
+export function SubmitButton({
+  children = "Save",
+  className = "",
+  ...props
+}: ComponentProps<"button">) {
   return (
     <button
       type="submit"
-      className="inline-flex items-center justify-center rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-deep"
+      {...props}
+      className={`inline-flex items-center justify-center rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-deep disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
     </button>
