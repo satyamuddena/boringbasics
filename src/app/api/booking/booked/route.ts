@@ -59,7 +59,14 @@ export async function POST(request: Request) {
   const bookedAt = new Date().toISOString();
   const scheduledAt = event.startTime ?? null;
   db.update(t.leads)
-    .set({ stage: "booked", bookedAt, calendlyEventUri: uri, scheduledAt })
+    .set({
+      stage: "booked",
+      bookedAt,
+      calendlyEventUri: uri,
+      scheduledAt,
+      calendlyStatus: event.status,
+      calendlyCheckedAt: bookedAt,
+    })
     .where(eq(t.leads.id, bookingId))
     .run();
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
@@ -68,7 +75,7 @@ export async function POST(request: Request) {
     action: "booking_booked",
     entityType: "lead",
     entityId: bookingId,
-    after: { calendlyEventUri: uri, scheduledAt },
+    after: { calendlyEventUri: uri, scheduledAt, calendlyStatus: event.status },
     ip,
   });
 

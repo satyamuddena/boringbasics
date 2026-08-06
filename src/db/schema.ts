@@ -187,6 +187,12 @@ export const leads = sqliteTable("leads", {
   preferredDatetime: text("preferred_datetime"),
   message: text("message"),
   status: text("status").notNull().default("new"), // new|contacted|closed (trainer follow-up)
+  /**
+   * When the trainer last reached out. Without this, "contacted" can't tell a
+   * message sent an hour ago from one sent last week, which is the whole
+   * question when deciding whether to chase again.
+   */
+  contactedAt: text("contacted_at"),
   /** Booking funnel stage — details → paid → booked. */
   stage: text("stage").notNull().default("details"),
   amountPaise: integer("amount_paise"),
@@ -197,6 +203,15 @@ export const leads = sqliteTable("leads", {
   bookedAt: text("booked_at"),
   /** Calendly event URI captured when the client schedules a slot. */
   calendlyEventUri: text("calendly_event_uri"),
+  /**
+   * What Calendly last told us about the slot: "active", "canceled", or
+   * "unverified" when we could not reach the API. Null for pre-sync rows.
+   * Calendly is the source of truth — a cancellation there is invisible to us
+   * until we re-read it, so this is refreshed rather than written once.
+   */
+  calendlyStatus: text("calendly_status"),
+  /** When we last asked Calendly. Throttles the automatic re-check. */
+  calendlyCheckedAt: text("calendly_checked_at"),
   /**
    * ISO start of the booked consultation, read back from the Calendly API.
    * This is the appointment itself — `bookedAt` only records when the client
