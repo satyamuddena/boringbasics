@@ -6,6 +6,7 @@ import { Reveal } from "@/components/Reveal";
 import { ButtonLink } from "@/components/Button";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { getPost, getSite } from "@/lib/content";
+import { formatDate as formatZoned } from "@/lib/datetime";
 import { assertPageVisible } from "@/lib/pages";
 
 export const dynamic = "force-dynamic";
@@ -34,8 +35,7 @@ function estimateReadTime(body: string): number {
   return Math.max(1, Math.round(words / 200));
 }
 
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+const formatDate = (iso: string) => formatZoned(iso, "long");
 
 export default async function BlogPostPage({ params }: Params) {
   await assertPageVisible("blog");

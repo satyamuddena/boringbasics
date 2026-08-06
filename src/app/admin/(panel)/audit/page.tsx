@@ -2,6 +2,7 @@ import Link from "next/link";
 import { and, asc, desc, eq, type SQL } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { AdminHeading, AdminListControls, Field, Select, AdminTable } from "@/components/admin/ui";
+import { formatDateTime } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +108,7 @@ export default async function AuditAdminPage({
         {visible.map((a) => (
           <tr key={a.id} className="align-top">
             <td className="whitespace-nowrap px-4 py-3 text-xs text-muted">
-              {new Date(a.at).toLocaleString("en-IN")}
+              {formatDateTime(a.at)}
               {a.ip && <span className="block text-muted/60">{a.ip}</span>}
             </td>
             <td className="px-4 py-3 text-xs">{a.actor}</td>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { desc, sql } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { AdminCard, AdminHeading, StatusPill } from "@/components/admin/ui";
+import { formatDateTime } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ export default async function AdminDashboard() {
                   {a.entityType}
                   {a.entityId ? ` #${a.entityId}` : ""}
                   <span className="block text-xs text-muted/60">
-                    {new Date(a.at).toLocaleString("en-IN")}
+                    {formatDateTime(a.at)}
                   </span>
                 </li>
               ))}
