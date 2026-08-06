@@ -30,18 +30,40 @@ const NOOP: PushSendResult = { ok: false, sent: 0, failed: 0, pruned: 0 };
 /** Configured once per process, lazily — the keys are read at call time. */
 let configured = false;
 
-function vapidReady(): boolean {
+/**
+ * Applies the VAPID config, or explains why it could not be applied.
+ *
+ * web-push validates strictly and throws — a subject missing its `mailto:`
+ * prefix, or a malformed key, raises rather than returning an error. Left
+ * unguarded that would throw straight out of sendAdminPush and break the
+ * never-throws contract this module promises its callers, in an `after()`
+ * block where nobody is waiting to catch it. So it is caught here and turned
+ * into a result, which is also what puts a readable reason in the audit log
+ * instead of a stack trace in the container logs.
+ */
+function vapidReady(): { ok: true } | { ok: false; reason: string } {
   const publicKey = process.env.VAPID_PUBLIC_KEY?.trim();
   const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
-  if (!publicKey || !privateKey) return false;
-  if (!configured) {
-    // A mailto: or https: subject is required by the VAPID spec; push services
-    // use it to contact you if a subscription misbehaves.
-    const subject = process.env.VAPID_SUBJECT?.trim() || "mailto:admin@boringbasics.fit";
+  if (!publicKey || !privateKey) {
+    return { ok: false, reason: "Push is not configured (VAPID keys missing)." };
+  }
+  if (configured) return { ok: true };
+
+  // Required by the VAPID spec: a mailto: or https: URI push services can use
+  // to contact whoever is sending. Not a credential — just an address.
+  const subject = process.env.VAPID_SUBJECT?.trim() || "mailto:admin@boringbasics.fit";
+  try {
     webpush.setVapidDetails(subject, publicKey, privateKey);
     configured = true;
+    return { ok: true };
+  } catch (error) {
+    const detail = (error as Error)?.message ?? "unknown error";
+    console.error("[push] VAPID configuration rejected:", detail);
+    return {
+      ok: false,
+      reason: `VAPID configuration is invalid (${detail}). VAPID_SUBJECT must start with "mailto:" or "https://".`,
+    };
   }
-  return true;
 }
 
 /** True when push is set up at all — lets the UI explain itself rather than fail silently. */
@@ -67,9 +89,8 @@ export async function sendAdminPush(
   notification: AdminPushNotification,
   options: { userId?: number } = {},
 ): Promise<PushSendResult> {
-  if (!vapidReady()) {
-    return { ...NOOP, skipped: "Push is not configured (VAPID keys missing)." };
-  }
+  const ready = vapidReady();
+  if (!ready.ok) return { ...NOOP, skipped: ready.reason };
 
   const db = getDb();
   const subs = options.userId

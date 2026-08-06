@@ -235,7 +235,8 @@ export default async function LeadsAdminPage({
     <>
       <AdminHeading title="Bookings" />
 
-      <PushToggle className="mb-4" />
+      {/* Read per request, not baked into the bundle — see PushToggle. */}
+      <PushToggle vapidPublicKey={process.env.VAPID_PUBLIC_KEY} className="mb-4" />
 
       {waLead && (
         <div

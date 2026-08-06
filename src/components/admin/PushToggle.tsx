@@ -66,11 +66,25 @@ const serialise = (sub: PushSubscription) => ({
   auth: encodeKey(sub.getKey("auth")),
 });
 
-export function PushToggle({ className = "" }: { className?: string }) {
+export function PushToggle({
+  /**
+   * The VAPID public key, handed down from the server rather than read from a
+   * NEXT_PUBLIC_ variable. Those are inlined into the client bundle at build
+   * time, and this app is built in Docker without the runtime environment — so
+   * a NEXT_PUBLIC_ key set in Coolify would arrive as undefined and this whole
+   * component would silently render nothing. As a prop it is read per request.
+   * Safe to send: it is the public half, meant for the browser.
+   */
+  vapidPublicKey,
+  className = "",
+}: {
+  vapidPublicKey?: string;
+  className?: string;
+}) {
   const [state, setState] = useState<State>("loading");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const vapidKey = vapidPublicKey;
 
   const register = useCallback(async () => {
     const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });

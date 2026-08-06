@@ -27,16 +27,48 @@ invalidates every device already subscribed, and they will not re-subscribe on t
 npx web-push generate-vapid-keys
 ```
 
-Set four variables (see `.env.example`). `VAPID_PRIVATE_KEY` is a real secret — it
+**Run it on your own machine, not the server.** A VAPID pair is just an EC keypair —
+nothing about it is tied to the host or the domain. Generate it once locally, then paste
+the values into Coolify's environment variables and redeploy. There is never a reason to
+run the command on the VPS.
+
+Three variables (see `.env.example`). `VAPID_PRIVATE_KEY` is a real secret — it
 authenticates you to Google's and Apple's push services. It belongs in the Coolify
 environment, never in the repo.
 
 ```text
-VAPID_PUBLIC_KEY=              from the command above
-VAPID_PRIVATE_KEY=             from the command above — secret
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=  same value as VAPID_PUBLIC_KEY
-VAPID_SUBJECT=mailto:you@example.com
+VAPID_PUBLIC_KEY=     from the command above
+VAPID_PRIVATE_KEY=    from the command above — secret
+VAPID_SUBJECT=mailto:hello@boringbasics.fit
 ```
+
+### What VAPID_SUBJECT is
+
+A **contact address, not a credential.** It travels in the signed request as the `sub`
+claim so a push service (Google, Apple, Mozilla) has a way to reach whoever is sending if
+something goes wrong at their end — an abuse report, a sender flooding endpoints. In normal
+operation nobody ever contacts it.
+
+It must be a `mailto:` or `https:` URI. Both of these are valid:
+
+```text
+VAPID_SUBJECT=mailto:hello@boringbasics.fit
+VAPID_SUBJECT=https://www.boringbasics.fit
+```
+
+Use a mailbox that is actually read — a bare `admin@example.com` with no `mailto:` prefix is
+rejected, and so is an address nobody monitors (valid, but useless when it matters). If the
+value is malformed, push is skipped with a readable reason in the audit log rather than
+throwing; nothing else breaks, but no notifications are sent until it is corrected.
+
+Left unset it falls back to `mailto:admin@boringbasics.fit`. Set it explicitly.
+
+All three are **runtime** variables, so a plain redeploy picks them up — no rebuild and
+no Docker build arguments. That is deliberate: the public key reaches the browser as a
+prop from the server rather than through a `NEXT_PUBLIC_` variable, because those are
+inlined into the client bundle during `next build`, which in this project happens inside
+Docker without the deployment environment. A `NEXT_PUBLIC_` key would have arrived
+`undefined` and the notifications box would have silently failed to appear.
 
 Until they are set, push is a **silent no-op** — same graceful degradation as an
 unconfigured Twilio or Razorpay. Nothing else breaks.
