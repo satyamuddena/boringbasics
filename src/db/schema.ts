@@ -195,6 +195,12 @@ export const leads = sqliteTable("leads", {
   bookedAt: text("booked_at"),
   /** Calendly event URI captured when the client schedules a slot. */
   calendlyEventUri: text("calendly_event_uri"),
+  /**
+   * ISO start of the booked consultation, read back from the Calendly API.
+   * This is the appointment itself — `bookedAt` only records when the client
+   * completed the form.
+   */
+  scheduledAt: text("scheduled_at"),
   createdAt: text("created_at").notNull(),
 });
 

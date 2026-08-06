@@ -30,6 +30,7 @@ const navSections: { label?: string; items: { label: string; href: string }[] }[
     items: [
       { label: "Bookings", href: "/admin/leads" },
       { label: "WhatsApp Test", href: "/admin/whatsapp-test" },
+      { label: "Razorpay Test", href: "/admin/razorpay-test" },
       { label: "Data Sync", href: "/admin/sync" },
     ],
   },
@@ -53,6 +54,7 @@ export default async function AdminPanelLayout({
           logoPath={site.logoPath}
           brandName={trainer.brand}
           wordmarkClassName="text-base tracking-[0.04em]"
+          openInNewTab
         />
         <nav className="mt-6">
           {navSections.map((section, index) => (

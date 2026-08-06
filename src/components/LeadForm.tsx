@@ -39,7 +39,7 @@ interface FormState {
   /** Newsletter opt-in — uses the same email. */
   subscribe: boolean;
   /** Honeypot — must stay empty. */
-  company: string;
+  bot_check_xyz: string;
 }
 
 const initial: FormState = {
@@ -51,7 +51,7 @@ const initial: FormState = {
   email: "",
   message: "",
   subscribe: false,
-  company: "",
+  bot_check_xyz: "",
 };
 
 const goals: Goal[] = ["fat-loss", "muscle-gain", "recomp", "lifestyle"];
@@ -541,13 +541,13 @@ export function LeadForm({
       {/* Honeypot field — hidden from users, catches bots */}
       <div className="absolute left-[-9999px]" aria-hidden>
         <label>
-          Company
+          Leave this empty
           <input
             type="text"
             tabIndex={-1}
             autoComplete="off"
-            value={form.company}
-            onChange={(e) => update({ company: e.target.value })}
+            value={form.bot_check_xyz}
+            onChange={(e) => update({ bot_check_xyz: e.target.value })}
           />
         </label>
       </div>

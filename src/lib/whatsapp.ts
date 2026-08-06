@@ -1,45 +1,128 @@
 import "server-only";
 import { Buffer } from "node:buffer";
+import { isValidPhoneNumber } from "libphonenumber-js";
+import {
+  customerTemplateVariables,
+  normaliseWhatsAppDigits,
+  trainerTemplateVariables,
+  type BookingWhatsAppPayload,
+} from "./whatsappTemplate";
 
-export interface BookingWhatsAppPayload { name: string; whatsapp: string; email: string | null; bookedAt: string; }
-export interface WhatsAppSendResult { ok: boolean; sid?: string; status?: string; errorCode?: number; error?: string; }
+export type { BookingWhatsAppPayload };
+
+export interface WhatsAppSendResult {
+  ok: boolean;
+  sid?: string;
+  status?: string;
+  errorCode?: number;
+  error?: string;
+}
+
+/** E.164 digits for Twilio, or null when the number is unusable. */
+function toWhatsAppRecipient(raw: string | null | undefined): string | null {
+  const digits = normaliseWhatsAppDigits(raw);
+  if (!digits) return null;
+  return isValidPhoneNumber(`+${digits}`) ? digits : null;
+}
 
 type TwilioMessageResponse = {
   sid?: string;
   status?: string;
   message?: string;
+  code?: number | null;
   error_code?: number | null;
   error_message?: string | null;
 };
 
-function cleanPhone(value?: string | null) { return value?.replace(/\D/g, "") ?? ""; }
-function bookingDateAndTime(value: string) {
-  const date = new Date(value);
-  return {
-    date: new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", timeZone: "Asia/Kolkata" }).format(date),
-    time: new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }).format(date).replace(/\b(am|pm)\b/i, (value) => value.toUpperCase()),
-  };
-}
-
-/** Approved Content Template variables: {{1}} name, {{2}} phone, {{3}} date, {{4}} time, {{5}} email. */
-export async function sendTwilioWhatsAppBooking(to: string, booking: BookingWhatsAppPayload): Promise<WhatsAppSendResult> {
+/**
+ * Submits one approved Content Template to Twilio. Never throws — a failed
+ * notification must not disturb the booking it is reporting on, so every
+ * outcome comes back as a result the caller can audit.
+ */
+async function sendTwilioTemplate(
+  to: string,
+  contentSid: string | undefined,
+  variables: Record<string, string>,
+): Promise<WhatsAppSendResult> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
   const from = process.env.TWILIO_WHATSAPP_FROM?.trim();
-  const contentSid = process.env.TWILIO_WHATSAPP_CONTENT_SID?.trim();
-  const recipient = cleanPhone(to);
-  if (!accountSid || !authToken || !from || !contentSid) return { ok: false, error: "Twilio WhatsApp environment variables are incomplete." };
-  if (!recipient) return { ok: false, error: "A valid WhatsApp recipient is required." };
-  const { date, time } = bookingDateAndTime(booking.bookedAt);
-  const form = new URLSearchParams({ From: from.startsWith("whatsapp:") ? from : `whatsapp:${from}`, To: `whatsapp:+${recipient}`, ContentSid: contentSid, ContentVariables: JSON.stringify({ "1": booking.name, "2": booking.whatsapp, "3": date, "4": time, "5": booking.email || "—" }) });
+  if (!accountSid || !authToken || !from) {
+    return { ok: false, error: "Twilio WhatsApp environment variables are incomplete." };
+  }
+  if (!contentSid) {
+    return { ok: false, error: "No Twilio Content SID is configured for this message." };
+  }
+
+  const recipient = toWhatsAppRecipient(to);
+  if (!recipient) {
+    // Caught here rather than by Twilio (error 21211), which bills the attempt
+    // and reports it far less clearly.
+    return { ok: false, error: `Not a valid WhatsApp number: ${to || "(empty)"}` };
+  }
+
+  const form = new URLSearchParams({
+    From: from.startsWith("whatsapp:") ? from : `whatsapp:${from}`,
+    To: `whatsapp:+${recipient}`,
+    ContentSid: contentSid,
+    ContentVariables: JSON.stringify(variables),
+  });
+
   try {
-    const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 10_000);
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(accountSid)}/Messages.json`, { method: "POST", headers: { Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`, "Content-Type": "application/x-www-form-urlencoded" }, body: form.toString(), signal: controller.signal });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(accountSid)}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: form.toString(),
+        signal: controller.signal,
+      },
+    );
     clearTimeout(timeout);
     const data = (await response.json().catch(() => null)) as TwilioMessageResponse | null;
-    if (!response.ok) { console.error("[whatsapp] Twilio notification failed:", response.status, data?.message); return { ok: false, error: data?.message || "Twilio rejected the message." }; }
+    if (!response.ok) {
+      const errorCode = data?.code ?? data?.error_code ?? undefined;
+      console.error("[whatsapp] Twilio notification failed:", response.status, errorCode, data?.message);
+      return {
+        ok: false,
+        errorCode: errorCode ?? undefined,
+        error: data?.message || "Twilio rejected the message.",
+      };
+    }
     return { ok: true, sid: data?.sid, status: data?.status };
-  } catch (error) { console.error("[whatsapp] Twilio notification error:", error); return { ok: false, error: "Unable to contact Twilio. Please try again." }; }
+  } catch (error) {
+    console.error("[whatsapp] Twilio notification error:", error);
+    return { ok: false, error: "Unable to contact Twilio. Please try again." };
+  }
+}
+
+/** Notifies the trainer that a new consultation has been booked. */
+export async function sendTwilioWhatsAppBooking(
+  to: string,
+  booking: BookingWhatsAppPayload,
+): Promise<WhatsAppSendResult> {
+  return sendTwilioTemplate(
+    to,
+    process.env.TWILIO_WHATSAPP_CONTENT_SID?.trim(),
+    trainerTemplateVariables(booking),
+  );
+}
+
+/** Confirms the booking to the client who made it. */
+export async function sendTwilioWhatsAppCustomer(
+  to: string,
+  booking: BookingWhatsAppPayload,
+): Promise<WhatsAppSendResult> {
+  return sendTwilioTemplate(
+    to,
+    process.env.TWILIO_WHATSAPP_CUSTOMER_CONTENT_SID?.trim(),
+    customerTemplateVariables(booking),
+  );
 }
 
 /** Reads Twilio's latest delivery receipt for a previously submitted message. */

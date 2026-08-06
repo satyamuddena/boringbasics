@@ -34,7 +34,7 @@ interface LeadPayload {
     utmCampaign?: string;
     program?: string;
   };
-  company?: string; // honeypot
+  bot_check_xyz?: string; // honeypot
 }
 
 function cleanMeta(value: unknown) {
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
   }
 
   // Honeypot: real users never fill this.
-  if (body.company && body.company.trim() !== "") {
+  if (body.bot_check_xyz && body.bot_check_xyz.trim() !== "") {
     return NextResponse.json({ ok: true }); // silently accept + drop
   }
 
