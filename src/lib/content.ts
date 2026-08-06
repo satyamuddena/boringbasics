@@ -232,6 +232,7 @@ export const getSite = cache(async (): Promise<typeof fallback.site> => {
           body: settings.popupBody || fallback.site.popup.body,
           slots: composeSlots(settings),
           note: settings.popupNote || fallback.site.popup.note,
+          delaySeconds: settings.popupDelaySeconds ?? fallback.site.popup.delaySeconds,
         }
       : fallback.site.popup,
   };

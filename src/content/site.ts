@@ -383,6 +383,7 @@ export const site = {
     body: "One-on-one with Coach Satya — we go through your goals, lifestyle and blood work, then map the exact plan that gets you there.",
     slots: "Mon–Sat, 4:00 PM – 8:00 PM (IST)",
     note: "Strictly one-on-one. Your goals, your plan — undivided attention.",
+    delaySeconds: 2,
   },
 };
 

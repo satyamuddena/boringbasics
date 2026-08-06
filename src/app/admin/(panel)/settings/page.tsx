@@ -182,6 +182,19 @@ export default async function SettingsAdminPage({
             <Field label="Note" hint='Second info line — e.g. "Strictly one-on-one…"'>
               <Input name="popupNote" defaultValue={site.popup.note} />
             </Field>
+            <Field
+              label="Show after (seconds)"
+              hint="Counted from when the page finishes loading, so the popup never lands on a half-drawn page. 0 shows it as soon as the page is ready; 2–5 is typical."
+            >
+              <Input
+                name="popupDelaySeconds"
+                type="number"
+                min={0}
+                max={60}
+                step={1}
+                defaultValue={site.popup.delaySeconds}
+              />
+            </Field>
           </div>
         </AdminCard>
 

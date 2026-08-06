@@ -16,6 +16,10 @@ const time = (fd: FormData, key: string, fb: string) => {
   const v = str(fd, key);
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : fb;
 };
+const clampInt = (raw: string, min: number, max: number, fb: number) => {
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fb;
+};
 
 /** Only absolute http(s) URLs are stored — bad values would break site metadata. */
 function normalizeSiteUrl(raw: string): string | null {
@@ -80,6 +84,7 @@ export async function saveSettingsAction(formData: FormData) {
           popupDayTo: day(formData, "popupDayTo", "Sat"),
           popupTimeFrom: time(formData, "popupTimeFrom", "16:00"),
           popupTimeTo: time(formData, "popupTimeTo", "20:00"),
+          popupDelaySeconds: clampInt(str(formData, "popupDelaySeconds"), 0, 60, 2),
           // Checked = visible; anything unchecked is stored as hidden.
           hiddenPagesJson: JSON.stringify(
             HIDEABLE_PAGES.filter((p) => formData.get(`page_${p.key}`) == null).map((p) => p.key),

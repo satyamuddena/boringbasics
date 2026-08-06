@@ -11,6 +11,8 @@ interface WelcomePopupProps {
   slots: string;
   note: string;
   ctaLabel: string;
+  /** Seconds to wait after the page finishes loading. Admin-controlled. */
+  delaySeconds?: number;
 }
 
 /**
@@ -22,18 +24,32 @@ interface WelcomePopupProps {
 export function WelcomePopup(props: WelcomePopupProps) {
   const pathname = usePathname();
   // Mounted only on the home page — navigating away unmounts (closing it) and
-  // navigating back remounts fresh, so it reappears after the short delay.
+  // navigating back remounts fresh, so it reappears after the configured delay.
   if (pathname !== "/") return null;
   return <WelcomePopupInner {...props} />;
 }
 
-function WelcomePopupInner({ title, body, slots, note, ctaLabel }: WelcomePopupProps) {
+function WelcomePopupInner({ title, body, slots, note, ctaLabel, delaySeconds = 2 }: WelcomePopupProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setOpen(true), 1200);
-    return () => clearTimeout(timer);
-  }, []);
+    const delayMs = Math.max(0, delaySeconds) * 1000;
+    let timer: ReturnType<typeof setTimeout>;
+    // Count from when the page has actually finished loading, not from hydration,
+    // so the popup never competes with images and fonts still coming in.
+    const start = () => {
+      timer = setTimeout(() => setOpen(true), delayMs);
+    };
+    if (document.readyState === "complete") {
+      start();
+      return () => clearTimeout(timer);
+    }
+    window.addEventListener("load", start, { once: true });
+    return () => {
+      window.removeEventListener("load", start);
+      clearTimeout(timer);
+    };
+  }, [delaySeconds]);
 
   const dismiss = useCallback(() => {
     setOpen(false);
