@@ -1,7 +1,8 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { AdminHeading, AdminListControls, AdminTable, Field, Input, Select, StatusPill } from "@/components/admin/ui";
-import { checkBookingWhatsAppAction, setLeadStatusAction } from "./actions";
+import { setLeadStatusAction } from "./actions";
+import { BookingDetails, type NotifyRecord } from "./BookingDetails";
 import { getTrainer } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
@@ -11,16 +12,6 @@ const STAGE_LABEL: Record<string, string> = {
   paid: "Paid",
   booked: "Booked",
 };
-
-/** One WhatsApp booking notification, as recorded by the audit log. */
-interface NotifyRecord {
-  audience?: "trainer" | "customer";
-  recipient?: string;
-  ok?: boolean;
-  sid?: string;
-  errorCode?: number;
-  error?: string;
-}
 
 function formatSlot(value: string) {
   return new Intl.DateTimeFormat("en-IN", {
@@ -225,7 +216,7 @@ export default async function LeadsAdminPage({
         </Field>
       </AdminListControls>
 
-      <AdminTable headers={["Contact", "Goal / Level", "Message", "Stage", "Payment / booking", "Consultation", "Received", "Status", ""]}>
+      <AdminTable headers={["Contact", "Stage", "Consultation", "Received", "Status", ""]}>
         {leads.map((l) => {
           const needsDetailsFollowup = l.stage === "details" && minutesSince(l.createdAt) >= 30;
           const needsSlotFollowup = l.stage === "paid";
@@ -251,14 +242,11 @@ export default async function LeadsAdminPage({
                 {l.whatsapp}
               </a>
               {l.email && <span className="block text-xs text-muted">{l.email}</span>}
-              <span className="mt-1 block text-xs text-muted/70">Booking #{l.id}</span>
-            </td>
-            <td className="px-4 py-3 text-muted">
-              {l.goal ?? "—"}
-              <span className="block text-xs">{l.level ?? ""}</span>
-            </td>
-            <td className="max-w-xs px-4 py-3 text-muted">
-              <span className="line-clamp-2">{l.message ?? "—"}</span>
+              <span className="mt-1 block text-xs text-muted/70">
+                Booking #{l.id}
+                {l.goal ? ` · ${l.goal}` : ""}
+                {l.level ? ` · ${l.level}` : ""}
+              </span>
             </td>
             <td className="px-4 py-3">
               <StatusPill value={STAGE_LABEL[l.stage] ?? l.stage} />
@@ -270,49 +258,18 @@ export default async function LeadsAdminPage({
               )}
             </td>
             <td className="px-4 py-3 text-xs text-muted">
-              {l.amountPaise ? (
-                <span className="block">
-                  {l.currency === "INR" ? "₹" : `${l.currency ?? ""} `}
-                  {(l.amountPaise / 100).toLocaleString("en-IN")}
-                </span>
-              ) : (
-                <span className="block">—</span>
-              )}
-              {l.razorpayPaymentId && <span className="block">Payment: {l.razorpayPaymentId}</span>}
-              {l.calendlyEventUri && (
-                <a
-                  href={l.calendlyEventUri}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-accent hover:underline"
-                >
-                  Calendly event
-                </a>
-              )}
-            </td>
-            <td className="px-4 py-3 text-xs text-muted">
               {l.scheduledAt ? (
                 <span className="block font-semibold text-fg">{formatSlot(l.scheduledAt)}</span>
               ) : (
-                <span className="block">{l.stage === "booked" ? "Slot time unknown" : "—"}</span>
+                <span className="block">{l.stage === "booked" ? "Slot unknown" : "—"}</span>
               )}
               {(["trainer", "customer"] as const).map((audience) => {
                 const note = notify?.[audience];
                 if (!note) return null;
                 return (
-                  <span key={audience} className="mt-1 block">
-                    <span className={note.ok ? "text-ok" : "text-bad"}>
-                      {audience === "trainer" ? "Trainer" : "Customer"}: {note.ok ? "sent" : "failed"}
-                      {note.errorCode ? ` (${note.errorCode})` : ""}
-                    </span>
-                    {!note.ok && note.error && <span className="block text-muted/70">{note.error}</span>}
-                    {note.ok && note.sid && (
-                      <form action={checkBookingWhatsAppAction.bind(null, note.sid, l.id)}>
-                        <button className="mt-1 rounded border border-line px-1.5 py-0.5 text-[11px] text-muted hover:border-accent hover:text-accent">
-                          Check delivery
-                        </button>
-                      </form>
-                    )}
+                  <span key={audience} className={`block ${note.ok ? "text-ok" : "text-bad"}`}>
+                    {audience === "trainer" ? "Trainer" : "Customer"}: {note.ok ? "sent" : "failed"}
+                    {note.errorCode ? ` (${note.errorCode})` : ""}
                   </span>
                 );
               })}
@@ -325,7 +282,8 @@ export default async function LeadsAdminPage({
               <StatusPill value={l.status} />
             </td>
             <td className="px-4 py-3">
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <BookingDetails booking={l} notify={notify} />
                 <a
                   href={whatsappHref(l.whatsapp, whatsappText)}
                   target="_blank"
@@ -359,7 +317,7 @@ export default async function LeadsAdminPage({
         })}
         {leads.length === 0 && (
           <tr>
-            <td colSpan={9} className="px-4 py-8 text-center text-muted">
+            <td colSpan={6} className="px-4 py-8 text-center text-muted">
               No bookings yet.
             </td>
           </tr>
