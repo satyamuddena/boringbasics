@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb, schema as t } from "@/db";
 import { auditedMutation } from "@/lib/admin";
-import { str, num, bool, csv, optNum, slugify } from "@/lib/forms";
+import { str, num, bool, csv, optNum, slugify, uniqueSlug } from "@/lib/forms";
 import { getSite } from "@/lib/content";
 import { sendNewsletter } from "@/lib/newsletter";
 import { normalizeBlogBody } from "@/lib/blogContent";
@@ -26,7 +26,9 @@ function parse(formData: FormData) {
   const title = str(formData, "title");
   const now = new Date().toISOString();
   return {
-    slug: str(formData, "slug") || slugify(title),
+    // Always normalised: a hand-typed "My First Post" would otherwise be stored
+    // verbatim and produce a broken /blog/My%20First%20Post URL.
+    slug: slugify(str(formData, "slug") || title),
     title,
     excerpt: str(formData, "excerpt"),
     coverImage: str(formData, "coverImage") || null,
@@ -44,6 +46,12 @@ export async function savePostAction(formData: FormData) {
   const db = getDb();
   const id = num(formData, "id", 0);
   const values = parse(formData);
+  // posts.slug is UNIQUE — resolve collisions here rather than surfacing a raw
+  // SQLite constraint error to the admin.
+  values.slug = uniqueSlug(values.slug, (candidate) => {
+    const row = db.select({ id: t.posts.id }).from(t.posts).where(eq(t.posts.slug, candidate)).get();
+    return !!row && row.id !== id;
+  });
   const notify = bool(formData, "notify") && values.isPublished;
   let adminEmail = "";
   if (id) {

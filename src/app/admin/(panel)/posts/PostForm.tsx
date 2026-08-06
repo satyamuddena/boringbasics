@@ -24,8 +24,11 @@ export function PostForm({ post }: { post?: PostRow }) {
           <Field label="Title">
             <Input name="title" defaultValue={post?.title} required />
           </Field>
-          <Field label="Slug" hint="Leave empty to generate from the title.">
-            <Input name="slug" defaultValue={post?.slug} />
+          <Field
+            label="Slug"
+            hint="Leave empty to generate from the title. Spaces and punctuation are converted to hyphens automatically, and a number is added if the slug is already taken."
+          >
+            <Input name="slug" defaultValue={post?.slug} placeholder="auto-generated-from-title" />
           </Field>
           <Field label="Category" hint="e.g. Nutrition, Training">
             <Input name="category" defaultValue={post?.category ?? ""} />

@@ -25,8 +25,11 @@ export function ProgramForm({ program }: { program?: ProgramRow }) {
           <Field label="Title">
             <Input name="title" defaultValue={program?.title} required />
           </Field>
-          <Field label="Slug" hint="URL path — leave empty to generate from the title.">
-            <Input name="slug" defaultValue={program?.slug} />
+          <Field
+            label="Slug"
+            hint="URL path — leave empty to generate from the title. Spaces and punctuation are converted to hyphens automatically, and a number is added if the slug is already taken."
+          >
+            <Input name="slug" defaultValue={program?.slug} placeholder="auto-generated-from-title" />
           </Field>
           <Field label="Duration label" hint="e.g. 12 Weeks">
             <Input name="durationLabel" defaultValue={program?.durationLabel} required />

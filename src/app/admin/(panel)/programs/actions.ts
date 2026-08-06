@@ -4,12 +4,13 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb, schema as t } from "@/db";
 import { auditedMutation } from "@/lib/admin";
-import { str, num, bool, lines, slugify } from "@/lib/forms";
+import { str, num, bool, lines, slugify, uniqueSlug } from "@/lib/forms";
 
 function parse(formData: FormData) {
   const title = str(formData, "title");
   return {
-    slug: str(formData, "slug") || slugify(title),
+    // Always normalised — see the same guard in posts/actions.ts.
+    slug: slugify(str(formData, "slug") || title),
     title,
     durationLabel: str(formData, "durationLabel"),
     shortDescription: str(formData, "shortDescription"),
@@ -29,6 +30,15 @@ export async function saveProgramAction(formData: FormData) {
   const db = getDb();
   const id = num(formData, "id", 0);
   const values = parse(formData);
+  // programs.slug is UNIQUE — resolve collisions before hitting the constraint.
+  values.slug = uniqueSlug(values.slug, (candidate) => {
+    const row = db
+      .select({ id: t.programs.id })
+      .from(t.programs)
+      .where(eq(t.programs.slug, candidate))
+      .get();
+    return !!row && row.id !== id;
+  });
 
   if (id) {
     await auditedMutation({

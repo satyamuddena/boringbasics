@@ -41,3 +41,18 @@ export const slugify = (s: string): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80) || "item";
+
+/**
+ * A slug that is free to use. Slugs are UNIQUE in the database, so without this
+ * a repeated title raises a raw SQLite constraint error in the admin UI.
+ * `isTaken` should exclude the row being edited.
+ */
+export const uniqueSlug = (base: string, isTaken: (candidate: string) => boolean): string => {
+  const root = slugify(base);
+  if (!isTaken(root)) return root;
+  for (let n = 2; n <= 200; n++) {
+    const candidate = `${root.slice(0, 76)}-${n}`;
+    if (!isTaken(candidate)) return candidate;
+  }
+  return `${root.slice(0, 71)}-${Date.now().toString(36).slice(-6)}`;
+};
