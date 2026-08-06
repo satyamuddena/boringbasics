@@ -1,7 +1,7 @@
-import { desc } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { AdminHeading, AdminListControls, AdminTable, Field, Input, Select, StatusPill } from "@/components/admin/ui";
-import { setLeadStatusAction } from "./actions";
+import { checkBookingWhatsAppAction, setLeadStatusAction } from "./actions";
 import { getTrainer } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,56 @@ const STAGE_LABEL: Record<string, string> = {
   paid: "Paid",
   booked: "Booked",
 };
+
+/** One WhatsApp booking notification, as recorded by the audit log. */
+interface NotifyRecord {
+  audience?: "trainer" | "customer";
+  recipient?: string;
+  ok?: boolean;
+  sid?: string;
+  errorCode?: number;
+  error?: string;
+}
+
+function formatSlot(value: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "long",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(value));
+}
+
+/**
+ * Latest notification result per lead per audience. Read from the audit log so
+ * no extra table is needed — rows arrive newest-first and the first hit wins.
+ */
+function loadNotifications(): Map<number, Partial<Record<"trainer" | "customer", NotifyRecord>>> {
+  const byLead = new Map<number, Partial<Record<"trainer" | "customer", NotifyRecord>>>();
+  const rows = getDb()
+    .select()
+    .from(t.auditLog)
+    .where(and(eq(t.auditLog.action, "whatsapp_booking_notify"), eq(t.auditLog.entityType, "lead")))
+    .orderBy(desc(t.auditLog.id))
+    .all();
+  for (const row of rows) {
+    const leadId = Number(row.entityId);
+    if (!Number.isInteger(leadId) || !row.afterJson) continue;
+    let record: NotifyRecord;
+    try {
+      record = JSON.parse(row.afterJson) as NotifyRecord;
+    } catch {
+      continue;
+    }
+    const audience = record.audience === "customer" ? "customer" : "trainer";
+    const existing = byLead.get(leadId) ?? {};
+    if (existing[audience]) continue; // newest already recorded
+    byLead.set(leadId, { ...existing, [audience]: record });
+  }
+  return byLead;
+}
 
 function minutesSince(value: string) {
   return Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
@@ -31,11 +81,32 @@ function whatsappHref(phone: string, text: string) {
 export default async function LeadsAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; stage?: string; status?: string; followup?: string; sort?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    stage?: string;
+    status?: string;
+    followup?: string;
+    sort?: string;
+    waLead?: string;
+    waStatus?: string;
+    waCode?: string;
+    waMessage?: string;
+  }>;
 }) {
-  const { q = "", stage = "", status = "", followup = "", sort = "newest" } = await searchParams;
+  const {
+    q = "",
+    stage = "",
+    status = "",
+    followup = "",
+    sort = "newest",
+    waLead = "",
+    waStatus = "",
+    waCode = "",
+    waMessage = "",
+  } = await searchParams;
   const trainer = await getTrainer();
   const allLeads = getDb().select().from(t.leads).orderBy(desc(t.leads.id)).all();
+  const notifications = loadNotifications();
   const query = q.trim().toLowerCase();
 
   // Funnel counts for the analytics cards.
@@ -99,6 +170,24 @@ export default async function LeadsAdminPage({
         and paid leads that have not picked a slot.
       </p>
 
+      {waLead && (
+        <div
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+            waStatus === "delivered" || waStatus === "read"
+              ? "border-ok/40 bg-ok/10 text-ok"
+              : waStatus === "failed" || waStatus === "undelivered"
+                ? "border-bad/40 bg-bad/10 text-bad"
+                : "border-line bg-ink-card text-muted"
+          }`}
+        >
+          <p>
+            Booking #{waLead} WhatsApp delivery status: <strong>{waStatus || "unknown"}</strong>
+            {waCode ? ` (error ${waCode})` : ""}.
+          </p>
+          {waMessage && <p className="mt-1">{waMessage}</p>}
+        </div>
+      )}
+
       <AdminListControls resetHref="/admin/leads">
         <Field label="Search">
           <Input name="q" defaultValue={q} placeholder="Name, phone, email, goal…" />
@@ -136,7 +225,7 @@ export default async function LeadsAdminPage({
         </Field>
       </AdminListControls>
 
-      <AdminTable headers={["Contact", "Goal / Level", "Message", "Stage", "Payment / booking", "Received", "Status", ""]}>
+      <AdminTable headers={["Contact", "Goal / Level", "Message", "Stage", "Payment / booking", "Consultation", "Received", "Status", ""]}>
         {leads.map((l) => {
           const needsDetailsFollowup = l.stage === "details" && minutesSince(l.createdAt) >= 30;
           const needsSlotFollowup = l.stage === "paid";
@@ -147,6 +236,7 @@ export default async function LeadsAdminPage({
             needsDetailsFollowup || needsSlotFollowup
               ? followupText
               : `Hi ${l.name}, this is regarding your ${trainer.brand} consultation booking #${l.id}.`;
+          const notify = notifications.get(l.id);
 
           return (
           <tr key={l.id} className={needsDetailsFollowup || needsSlotFollowup ? "bg-accent/5" : undefined}>
@@ -201,6 +291,33 @@ export default async function LeadsAdminPage({
               )}
             </td>
             <td className="px-4 py-3 text-xs text-muted">
+              {l.scheduledAt ? (
+                <span className="block font-semibold text-fg">{formatSlot(l.scheduledAt)}</span>
+              ) : (
+                <span className="block">{l.stage === "booked" ? "Slot time unknown" : "—"}</span>
+              )}
+              {(["trainer", "customer"] as const).map((audience) => {
+                const note = notify?.[audience];
+                if (!note) return null;
+                return (
+                  <span key={audience} className="mt-1 block">
+                    <span className={note.ok ? "text-ok" : "text-bad"}>
+                      {audience === "trainer" ? "Trainer" : "Customer"}: {note.ok ? "sent" : "failed"}
+                      {note.errorCode ? ` (${note.errorCode})` : ""}
+                    </span>
+                    {!note.ok && note.error && <span className="block text-muted/70">{note.error}</span>}
+                    {note.ok && note.sid && (
+                      <form action={checkBookingWhatsAppAction.bind(null, note.sid, l.id)}>
+                        <button className="mt-1 rounded border border-line px-1.5 py-0.5 text-[11px] text-muted hover:border-accent hover:text-accent">
+                          Check delivery
+                        </button>
+                      </form>
+                    )}
+                  </span>
+                );
+              })}
+            </td>
+            <td className="px-4 py-3 text-xs text-muted">
               {new Date(l.createdAt).toLocaleString("en-IN")}
               <span className="block">{ageLabel(l.createdAt)}</span>
             </td>
@@ -242,7 +359,7 @@ export default async function LeadsAdminPage({
         })}
         {leads.length === 0 && (
           <tr>
-            <td colSpan={8} className="px-4 py-8 text-center text-muted">
+            <td colSpan={9} className="px-4 py-8 text-center text-muted">
               No bookings yet.
             </td>
           </tr>

@@ -1,11 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { audit } from "@/lib/audit";
-import { getTrainer } from "@/lib/content";
-import { sendTwilioWhatsAppBooking } from "@/lib/whatsapp";
+import { getConsultation, getTrainer } from "@/lib/content";
+import {
+  sendTwilioWhatsAppBooking,
+  sendTwilioWhatsAppCustomer,
+  type BookingWhatsAppPayload,
+  type WhatsAppSendResult,
+} from "@/lib/whatsapp";
 import { rateLimit } from "@/lib/rate-limit";
-import { verifyCalendlyEventUri } from "@/lib/calendly";
+import { verifyCalendlyEvent } from "@/lib/calendly";
 
 /**
  * Marks a booking `booked` once the client schedules a Calendly slot (the
@@ -46,31 +51,69 @@ export async function POST(request: Request) {
   }
 
   const uri = typeof body.calendlyEventUri === "string" ? body.calendlyEventUri.slice(0, 500) : null;
-  if (!(await verifyCalendlyEventUri(uri))) {
+  const event = await verifyCalendlyEvent(uri);
+  if (!event.ok) {
     return NextResponse.json({ error: "Calendly booking could not be verified." }, { status: 400 });
   }
 
   const bookedAt = new Date().toISOString();
+  const scheduledAt = event.startTime ?? null;
   db.update(t.leads)
-    .set({ stage: "booked", bookedAt, calendlyEventUri: uri })
+    .set({ stage: "booked", bookedAt, calendlyEventUri: uri, scheduledAt })
     .where(eq(t.leads.id, bookingId))
     .run();
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   audit({
     actor: "public",
     action: "booking_booked",
     entityType: "lead",
     entityId: bookingId,
-    after: { calendlyEventUri: uri },
-    ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
+    after: { calendlyEventUri: uri, scheduledAt },
+    ip,
   });
 
-  // A notification failure never changes an already-confirmed booking.
   const trainer = await getTrainer();
-  await sendTwilioWhatsAppBooking(process.env.TWILIO_WHATSAPP_TO?.trim() || trainer.whatsapp, {
+  const consultation = await getConsultation();
+  const payload: BookingWhatsAppPayload = {
     name: booking.name,
     whatsapp: booking.whatsapp,
     email: booking.email,
     bookedAt,
+    scheduledAt,
+    brand: trainer.brand,
+    durationLabel: consultation.durationLabel,
+  };
+
+  // The booking is already confirmed; notifications run after the response so
+  // two 10s Twilio timeouts can never stall the client's confirmation screen.
+  // Each outcome is audited — a failure here must never un-book anything.
+  after(async () => {
+    const record = (audience: "trainer" | "customer", recipient: string, result: WhatsAppSendResult) =>
+      audit({
+        actor: "public",
+        action: "whatsapp_booking_notify",
+        entityType: "lead",
+        entityId: bookingId,
+        after: {
+          audience,
+          recipient,
+          ok: result.ok,
+          sid: result.sid,
+          status: result.status,
+          errorCode: result.errorCode,
+          error: result.error,
+        },
+        ip,
+      });
+
+    await Promise.allSettled([
+      sendTwilioWhatsAppBooking(trainer.whatsapp, payload).then((result) =>
+        record("trainer", trainer.whatsapp, result),
+      ),
+      sendTwilioWhatsAppCustomer(booking.whatsapp, payload).then((result) =>
+        record("customer", booking.whatsapp, result),
+      ),
+    ]);
   });
 
   return NextResponse.json({ ok: true });
