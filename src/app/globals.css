@@ -262,6 +262,15 @@ body {
     transform: translateX(-100%);
   }
 }
+/*
+  Left-to-right is the same animation played backwards, not a positive
+  translate. Sliding the tracks right would move the trailing track off to the
+  right and leave the strip empty on the left; running -100% -> 0 keeps the two
+  tracks covering the window at every point of the loop.
+*/
+.promo-marquee-track--reverse {
+  animation-direction: reverse;
+}
 
 .promo-flash {
   animation: promo-flash 1.4s ease-in-out infinite;

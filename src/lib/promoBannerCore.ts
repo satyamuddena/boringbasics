@@ -6,17 +6,23 @@
 export type PromoKind = "post" | "program" | "testimonial";
 
 /** How the strip draws attention. Neutralised under prefers-reduced-motion. */
-export type PromoEffect = "none" | "scroll" | "flash";
+export type PromoEffect = "none" | "scroll" | "scroll-reverse" | "flash";
 
 export const PROMO_EFFECTS: { value: PromoEffect; label: string }[] = [
   { value: "none", label: "None — plain text" },
   { value: "scroll", label: "Scrolling — text moves right to left" },
+  { value: "scroll-reverse", label: "Scrolling — text moves left to right" },
   { value: "flash", label: "Flashing — text pulses" },
 ];
 
+/** Both scroll directions share the marquee markup, only the direction differs. */
+export function isScrollEffect(effect: PromoEffect): boolean {
+  return effect === "scroll" || effect === "scroll-reverse";
+}
+
 /** Falls back to "none" so an unknown value can never animate unexpectedly. */
 export function toPromoEffect(value: string | null | undefined): PromoEffect {
-  return value === "scroll" || value === "flash" ? value : "none";
+  return value === "scroll" || value === "scroll-reverse" || value === "flash" ? value : "none";
 }
 
 export const PROMO_KINDS: PromoKind[] = ["post", "program", "testimonial"];

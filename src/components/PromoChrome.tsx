@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ActivePromo } from "@/lib/content";
+import { isScrollEffect } from "@/lib/promoBannerCore";
 
 const ROTATE_MS = 6000;
 
@@ -60,7 +61,7 @@ export function PromoChrome({
               // header's CTA, but 14px reads heavy in a 36px strip.
               className="flex min-w-0 flex-1 items-center gap-2 text-[13px] font-semibold tracking-[0.01em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
             >
-              {promo.effect === "scroll" ? (
+              {isScrollEffect(promo.effect) ? (
                 /*
                   Two identical tracks side by side, each sliding a full track
                   width: as the first leaves, the second is exactly where it
@@ -73,7 +74,13 @@ export function PromoChrome({
                 */
                 <span className="promo-marquee">
                   {[0, 1].map((track) => (
-                    <span key={track} className="promo-marquee-track" aria-hidden={track === 1}>
+                    <span
+                      key={track}
+                      className={`promo-marquee-track ${
+                        promo.effect === "scroll-reverse" ? "promo-marquee-track--reverse" : ""
+                      }`}
+                      aria-hidden={track === 1}
+                    >
                       {[0, 1, 2].map((copy) => (
                         <span key={copy} aria-hidden={track === 0 && copy > 0 ? true : undefined}>
                           {promo.bannerText}

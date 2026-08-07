@@ -8,6 +8,7 @@ import {
   defaultPromoHref,
   isPromoKind,
   toPromoEffect,
+  isScrollEffect,
   PROMO_EFFECTS,
 } from "../src/lib/promoBannerCore";
 
@@ -83,10 +84,18 @@ test("only the three known kinds are accepted", () => {
   assert.equal(isPromoKind("lead"), false);
 });
 
-test("the two animated effects are recognised", () => {
+test("every animated effect is recognised", () => {
   assert.equal(toPromoEffect("scroll"), "scroll");
+  assert.equal(toPromoEffect("scroll-reverse"), "scroll-reverse");
   assert.equal(toPromoEffect("flash"), "flash");
   assert.equal(toPromoEffect("none"), "none");
+});
+
+test("both scroll directions use the marquee, nothing else does", () => {
+  assert.equal(isScrollEffect("scroll"), true);
+  assert.equal(isScrollEffect("scroll-reverse"), true);
+  assert.equal(isScrollEffect("flash"), false);
+  assert.equal(isScrollEffect("none"), false);
 });
 
 test("anything unrecognised falls back to a still banner", () => {
