@@ -2,6 +2,7 @@ import { AdminAlert, AdminCard, AdminHeading, Field, Input, Select, SubmitButton
 import { DiagnosticsConfig, DiagnosticsTabs } from "@/components/admin/DiagnosticsTabs";
 import { getConsultation, getTrainer } from "@/lib/content";
 import { twilioDiagnostics } from "@/lib/whatsapp";
+import { WHATSAPP_FIX } from "@/lib/whatsappDelivery";
 import { checkWhatsAppStatusAction, sendWhatsAppTestAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -86,15 +87,31 @@ export default async function WhatsAppTestPage({
           </AdminAlert>
         )}
 
-        {(sent || checked || error === "send") && (
-          <p className="mb-4 text-xs text-muted/70">
-            Error <strong>63015</strong> means the sender is the Twilio Sandbox and this recipient
-            has not joined it — they must send <code>join &lt;your-code&gt;</code> to the sandbox
-            number, and re-join every 3 days. Customers will never have done this, so a registered
-            WhatsApp sender is required before customer confirmations can work. Error{" "}
-            <strong>63016</strong> usually means the Content Template is not approved yet.
-          </p>
-        )}
+        {/*
+          Guidance for the error that actually came back. This used to print the
+          sandbox explanation for every failure, which is wrong for most codes
+          and cost real time chasing an opt-in problem that did not exist.
+        */}
+        {(sent || checked || error === "send") &&
+          (code && WHATSAPP_FIX[Number(code)] ? (
+            <p className="mb-4 text-xs text-muted/70">
+              <strong>Error {code}:</strong> {WHATSAPP_FIX[Number(code)]}
+            </p>
+          ) : (
+            <p className="mb-4 text-xs text-muted/70">
+              {code ? (
+                <>
+                  Error <strong>{code}</strong> is not one this page explains yet — look it up at{" "}
+                  <code>twilio.com/docs/api/errors/{code}</code>.
+                </>
+              ) : (
+                <>
+                  A send that Twilio accepts is not yet a delivery — WhatsApp confirms separately,
+                  so re-check the status before trusting it.
+                </>
+              )}
+            </p>
+          ))}
 
         {error === "status" && !checked && (
           <AdminAlert tone="bad">

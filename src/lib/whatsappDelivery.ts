@@ -24,8 +24,32 @@ export const WHATSAPP_ERROR: Record<number, string> = {
   63016: "sent outside the 24-hour window without an approved template",
   63024: "the message template was rejected",
   63051: "the WhatsApp sender is not registered",
+  63112: "Meta has disabled or not yet verified the WhatsApp Business Account",
   21211: "the phone number looks wrong",
   21610: "they have blocked or unsubscribed",
+};
+
+/**
+ * What to actually do about it. Separate from the label above because the label
+ * goes in a table cell and this goes under the test result.
+ *
+ * These are kept per-code on purpose: the diagnostics page used to print the
+ * same sandbox advice for every failure, which sent us chasing an opt-in
+ * problem when Meta had simply not verified the business.
+ */
+export const WHATSAPP_FIX: Record<number, string> = {
+  63003: "Check the number is on WhatsApp and includes the country code.",
+  63015:
+    "The sender is the Twilio Sandbox and this recipient has not joined it — they must send “join <your-code>” to the sandbox number, and re-join every 3 days. Customers will never have done this, so a registered sender is required before customer confirmations can work.",
+  63016:
+    "The last message was over 24 hours ago, so WhatsApp requires an approved Content Template. Check the template is approved in Twilio Console → Content Template Builder.",
+  63024: "The Content Template was rejected. Edit and resubmit it for approval.",
+  63051:
+    "This number is not registered as a WhatsApp sender in Twilio Console → Messaging → Senders.",
+  63112:
+    "Not a sandbox or template problem: Meta has disabled the WhatsApp Business Account behind this sender, or its business verification is still pending. Finish Meta Business Verification in Meta Business Manager (or appeal the restriction) — no message can leave until Meta re-enables it. If you deleted and re-registered this number, also turn off Two-Factor Authentication for it in WhatsApp Manager.",
+  21211: "Twilio rejected the number format. Use full international form, e.g. +919876543210.",
+  21610: "This recipient blocked or unsubscribed from your messages.",
 };
 
 export interface DeliveryInput {
