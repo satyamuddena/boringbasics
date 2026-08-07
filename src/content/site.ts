@@ -347,7 +347,7 @@ export const site = {
   description: trainer.shortBio,
   /** Update to the live domain before launch. */
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://www.boringbasics.fit",
-  ogImage: "/brand/boring-basics-primary.jpeg",
+  ogImage: "/brand/boring-basics-primary.jpg",
   logoPath: "/brand/boring-basics-mark-client.png",
   notificationLogoPath: "/brand/boring-basics-logo.svg",
   iconPath: "/brand/boring-basics-mark-client.png",
