@@ -5,7 +5,10 @@ import Link from "next/link";
 import { Reveal } from "@/components/Reveal";
 import { ButtonLink } from "@/components/Button";
 import { goalLabels } from "@/content/site";
-import { getProgram, getConsultation, getSite } from "@/lib/content";
+import { getProgram, getConsultation, getSite, getPromoForItem } from "@/lib/content";
+import { getDb, schema as t } from "@/db";
+import { eq } from "drizzle-orm";
+import { formatDate } from "@/lib/datetime";
 import { assertPageVisible } from "@/lib/pages";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +37,10 @@ export default async function ProgramDetailPage({ params }: Params) {
     getSite(),
   ]);
   if (!program) notFound();
+
+  // The promo row is keyed by id, which the public Program type doesn't carry.
+  const row = getDb().select({ id: t.programs.id }).from(t.programs).where(eq(t.programs.slug, slug)).get();
+  const promo = row ? await getPromoForItem("program", row.id) : null;
 
   return (
     <article className="pt-24">
@@ -100,6 +107,13 @@ export default async function ProgramDetailPage({ params }: Params) {
           </ul>
         </Reveal>
 
+        {promo?.status === "expired" && (
+          <p className="mt-16 rounded-xl border border-line bg-ink-card px-4 py-3 text-sm text-muted">
+            This offer has ended{promo.endsAt ? ` on ${formatDate(promo.endsAt)}` : ""}. Get in touch
+            for what&apos;s running now.
+          </p>
+        )}
+
         {/* Consultation note */}
         <Reveal className="my-16 rounded-2xl border border-accent/40 bg-ink-card p-8 text-center shadow-glow">
           <h2 className="font-display text-2xl uppercase">Ready to begin?</h2>
@@ -107,8 +121,8 @@ export default async function ProgramDetailPage({ params }: Params) {
             Book a {consultation.durationLabel} consultation call for ₹
             {consultation.price.toLocaleString("en-IN")}. {consultation.note}
           </p>
-          <ButtonLink href="/contact" size="lg" className="mt-6">
-            {site.ctaLabel}
+          <ButtonLink href={promo?.ctaHref || "/contact"} size="lg" className="mt-6">
+            {promo?.ctaLabel || site.ctaLabel}
           </ButtonLink>
         </Reveal>
       </div>

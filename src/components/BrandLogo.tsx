@@ -74,8 +74,7 @@ export function BrandLogo({
           {tagline && (
             <span className="mt-1 block whitespace-nowrap text-[7px] font-bold uppercase leading-none tracking-[0.2em] text-fg/85 sm:text-[8px] sm:tracking-[0.24em]">
               {taglineLeadingWords && `${taglineLeadingWords} `}
-              <span className="text-accent">{taglineAccentWord}</span>{" "}
-              <span className="text-accent" aria-hidden>✦</span>
+              <span className="text-accent">{taglineAccentWord}</span>
             </span>
           )}
         </span>

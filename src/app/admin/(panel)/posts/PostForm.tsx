@@ -2,6 +2,8 @@ import type { schema } from "@/db";
 import { AdminCard, Field, Input, Textarea, Checkbox, SubmitButton } from "@/components/admin/ui";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { PromoteFields } from "@/components/admin/PromoteFields";
+import type { PromoRow } from "@/lib/promoBanner";
 import { savePostAction } from "./actions";
 
 type PostRow = typeof schema.posts.$inferSelect;
@@ -14,7 +16,7 @@ const json = <T,>(s: string | undefined, fb: T): T => {
   }
 };
 
-export function PostForm({ post }: { post?: PostRow }) {
+export function PostForm({ post, promo }: { post?: PostRow; promo?: PromoRow }) {
   const tags = json<string[]>(post?.tagsJson, []);
   return (
     <form action={savePostAction} className="max-w-3xl space-y-4 sm:space-y-6">
@@ -65,6 +67,7 @@ export function PostForm({ post }: { post?: PostRow }) {
               on later edits to avoid duplicate emails.
             </p>
           </div>
+          <PromoteFields promo={promo} fallbackLabel="this post" />
         </div>
       </AdminCard>
       <SubmitButton>{post ? "Save post" : "Create post"}</SubmitButton>

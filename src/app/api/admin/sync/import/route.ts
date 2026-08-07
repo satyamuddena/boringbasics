@@ -7,7 +7,9 @@ import { getDb, schema as t } from "@/db";
 import type Database from "better-sqlite3";
 
 const SINGLETON_TABLES = ["trainer", "consultation", "siteSettings"] as const;
-const LIST_TABLES = ["stats", "programs", "testimonials", "faqs", "socials"] as const;
+// promoBanner last: its rows point at programs/testimonials by id, so they are
+// replaced after the tables they reference.
+const LIST_TABLES = ["stats", "programs", "testimonials", "faqs", "socials", "promoBanner"] as const;
 const MAX_IMPORT_BYTES = 1024 * 1024; // content exports are small; reject oversized uploads
 
 const tableMap = {
@@ -17,6 +19,7 @@ const tableMap = {
   testimonials: t.testimonials,
   faqs: t.faqs,
   socials: t.socials,
+  promoBanner: t.promoBanner,
   consultation: t.consultation,
   siteSettings: t.siteSettings,
 } as const;

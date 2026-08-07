@@ -4,6 +4,8 @@ import { getDb, schema as t } from "@/db";
 import { AdminDisclosureCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, Textarea, Checkbox, SubmitButton } from "@/components/admin/ui";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { DeleteForm } from "@/components/admin/DeleteForm";
+import { PromoteFields } from "@/components/admin/PromoteFields";
+import { getPromoFor } from "@/lib/promoBanner";
 import { saveTestimonialAction, deleteTestimonialAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +80,10 @@ export default async function TestimonialsAdminPage({
           </Field>
           <ImageUploadField name="image" label="Client photo (optional)" kind="testimonial" defaultValue={editing?.image ?? ""} />
           <Checkbox name="featured" label="Featured on homepage" defaultChecked={editing?.featured ?? false} />
+          <PromoteFields
+            promo={editing ? getPromoFor("testimonial", editing.id) : undefined}
+            fallbackLabel="the testimonials page"
+          />
           <SubmitButton>{editing ? "Save changes" : "Add testimonial"}</SubmitButton>
         </form>
       </AdminDisclosureCard>

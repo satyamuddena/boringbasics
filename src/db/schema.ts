@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, unique } from "drizzle-orm/sqlite-core";
 
 /* ------------------------------------------------------------------ */
 /*  Content tables — shapes mirror the types in src/content/site.ts.  */
@@ -97,6 +97,37 @@ export const posts = sqliteTable("posts", {
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
+
+/**
+ * Items promoted in the site-wide banner strip under the header.
+ *
+ * A pointer rather than a content type: a post, program or testimonial is
+ * promoted by adding a row here, so the same banner can front any of the three
+ * without duplicating their content or forcing them to share a common column.
+ * `ref_id` is deliberately not a foreign key — it targets three different
+ * tables, so deletion is handled by the admin actions rather than a constraint.
+ */
+export const promoBanner = sqliteTable(
+  "promo_banner",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    kind: text("kind").notNull(), // post|program|testimonial
+    refId: integer("ref_id").notNull(),
+    /** Short line shown in the strip — the excerpt is usually too long for it. */
+    bannerText: text("banner_text").notNull(),
+    ctaLabel: text("cta_label"),
+    /** Blank falls back to the promoted item's own page. */
+    ctaHref: text("cta_href"),
+    startsAt: text("starts_at"),
+    endsAt: text("ends_at"),
+    /** Manual override — turning this off hides the promo whatever the dates say. */
+    isEnabled: integer("is_enabled", { mode: "boolean" }).notNull().default(false),
+    displayOrder: integer("display_order").notNull().default(0),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => [unique().on(t.kind, t.refId)],
+);
 
 /** Singleton (id = 1). */
 export const consultation = sqliteTable("consultation", {

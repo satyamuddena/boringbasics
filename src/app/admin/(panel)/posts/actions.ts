@@ -8,6 +8,7 @@ import { str, num, bool, csv, optNum, slugify, uniqueSlug } from "@/lib/forms";
 import { getSite } from "@/lib/content";
 import { sendNewsletter } from "@/lib/newsletter";
 import { normalizeBlogBody } from "@/lib/blogContent";
+import { upsertPromoBanner, deletePromoFor } from "@/lib/promoBanner";
 
 /** "Email subscribers about this post" — only for published posts. */
 async function notifySubscribers(values: ReturnType<typeof parse>, adminEmail: string) {
@@ -66,6 +67,7 @@ export async function savePostAction(formData: FormData) {
       entityId: () => id,
       after: () => db.select().from(t.posts).where(eq(t.posts.id, id)).get(),
     });
+    upsertPromoBanner("post", id, formData);
     if (notify) await notifySubscribers(values, adminEmail);
     redirect(`/admin/posts/${id}?saved=1`);
   } else {
@@ -82,6 +84,7 @@ export async function savePostAction(formData: FormData) {
       entityId: (r) => Number(r.lastInsertRowid),
       after: (r) => db.select().from(t.posts).where(eq(t.posts.id, Number(r.lastInsertRowid))).get(),
     });
+    upsertPromoBanner("post", Number(result.lastInsertRowid), formData);
     if (notify) await notifySubscribers(values, adminEmail);
     redirect(`/admin/posts/${Number(result.lastInsertRowid)}?saved=1`);
   }
@@ -97,5 +100,8 @@ export async function deletePostAction(id: number) {
     run: () => db.delete(t.posts).where(eq(t.posts.id, id)).run(),
     entityId: () => id,
   });
+  // ref_id is not a foreign key (it targets three tables), so the promo row
+  // would otherwise outlive the post and point at nothing.
+  deletePromoFor("post", id);
   redirect("/admin/posts");
 }

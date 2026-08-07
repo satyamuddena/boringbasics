@@ -3,7 +3,8 @@ import { Footer } from "@/components/Footer";
 import { StickyCTA } from "@/components/StickyCTA";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { WelcomePopup } from "@/components/WelcomePopup";
-import { getSite, getTrainer, getSocials } from "@/lib/content";
+import { PromoChrome } from "@/components/PromoChrome";
+import { getSite, getTrainer, getSocials, getActivePromotions } from "@/lib/content";
 import { navLinks, type SocialLink } from "@/content/site";
 import { HIDEABLE_PAGES } from "@/lib/constants";
 
@@ -50,7 +51,12 @@ function buildJsonLd(
 export default async function SiteLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [site, trainer, socials] = await Promise.all([getSite(), getTrainer(), getSocials()]);
+  const [site, trainer, socials, promos] = await Promise.all([
+    getSite(),
+    getTrainer(),
+    getSocials(),
+    getActivePromotions(),
+  ]);
   const jsonLd = buildJsonLd(site, trainer, socials);
   const hiddenHrefs = new Set<string>(
     HIDEABLE_PAGES.filter((p) => site.hiddenPages.includes(p.key)).map((p) => p.href),
@@ -69,7 +75,9 @@ export default async function SiteLayout({
         brandName={trainer.brand}
         brandTagline={trainer.tagline}
       />
-      <main className="flex-1">{children}</main>
+      {/* Renders the promo strip and owns <main>, so the strip's page offset is
+          dropped at the same moment a visitor dismisses it. */}
+      <PromoChrome promos={promos}>{children}</PromoChrome>
       <Footer />
       <StickyCTA ctaLabel={site.ctaLabel} />
       <WhatsAppButton />

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { AdminAlert, AdminHeading } from "@/components/admin/ui";
+import { getPromoFor } from "@/lib/promoBanner";
 import { PostForm } from "../PostForm";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export default async function EditPostPage({
           )}
         </AdminAlert>
       )}
-      <PostForm post={post} />
+      <PostForm post={post} promo={getPromoFor("post", post.id)} />
     </>
   );
 }

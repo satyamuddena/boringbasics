@@ -2,6 +2,8 @@ import type { schema } from "@/db";
 import { goalLabels, type Goal } from "@/content/site";
 import { AdminCard, Field, FieldGroup, Input, Textarea, Select, Checkbox, SubmitButton } from "@/components/admin/ui";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { PromoteFields } from "@/components/admin/PromoteFields";
+import type { PromoRow } from "@/lib/promoBanner";
 import { saveProgramAction } from "./actions";
 
 type ProgramRow = typeof schema.programs.$inferSelect;
@@ -14,7 +16,7 @@ const json = <T,>(s: string | undefined, fb: T): T => {
   }
 };
 
-export function ProgramForm({ program }: { program?: ProgramRow }) {
+export function ProgramForm({ program, promo }: { program?: ProgramRow; promo?: PromoRow }) {
   const features = json<string[]>(program?.featuresJson, []);
   const goalTags = json<string[]>(program?.goalTagsJson, []);
   return (
@@ -74,6 +76,7 @@ export function ProgramForm({ program }: { program?: ProgramRow }) {
           </FieldGroup>
           <Checkbox name="popular" label="Mark as most popular" defaultChecked={program?.popular} />
           <ImageUploadField name="image" label="Card image" kind="program" defaultValue={program?.image ?? ""} />
+          <PromoteFields promo={promo} fallbackLabel="this program's page" />
         </div>
       </AdminCard>
       <SubmitButton>{program ? "Save program" : "Create program"}</SubmitButton>

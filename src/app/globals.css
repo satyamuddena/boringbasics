@@ -197,3 +197,27 @@ body {
 .animate-scroll-cue {
   animation: scroll-bounce 1.8s ease-in-out infinite;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Promotion strip offset                                             */
+/*                                                                     */
+/*  The strip is fixed under the 64px header, so page content is padded */
+/*  down to clear it. `.promo-on` is toggled by PromoChrome (client) so */
+/*  the offset disappears together with a dismissed banner.            */
+/*                                                                     */
+/*  The hero is the exception: it is full-bleed and is meant to run     */
+/*  *under* the chrome, so it cancels the offset and pads its own copy  */
+/*  instead (64px header + 44px strip).                                */
+/* ------------------------------------------------------------------ */
+.promo-on {
+  padding-top: 2.75rem;
+}
+.promo-on > .hero-bleed:first-child {
+  margin-top: -2.75rem;
+  padding-top: 6.75rem;
+}
+/*
+  No .hero-inner override here on purpose: the hero's own top padding is already
+  small enough to read the same with or without the strip, so the two states
+  cannot drift apart as the hero is restyled.
+*/

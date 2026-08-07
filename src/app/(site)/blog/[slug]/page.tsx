@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Reveal } from "@/components/Reveal";
 import { ButtonLink } from "@/components/Button";
 import { MarkdownBody } from "@/components/MarkdownBody";
-import { getPost, getSite } from "@/lib/content";
+import { getPost, getSite, getPromoForItem } from "@/lib/content";
+import { getDb, schema as t } from "@/db";
+import { eq } from "drizzle-orm";
 import { formatDate as formatZoned } from "@/lib/datetime";
 import { assertPageVisible } from "@/lib/pages";
 
@@ -42,6 +44,10 @@ export default async function BlogPostPage({ params }: Params) {
   const { slug } = await params;
   const [post, site] = await Promise.all([getPost(slug), getSite()]);
   if (!post) notFound();
+
+  // The promo row is keyed by id, which the public Post type doesn't carry.
+  const row = getDb().select({ id: t.posts.id }).from(t.posts).where(eq(t.posts.slug, slug)).get();
+  const promo = row ? await getPromoForItem("post", row.id) : null;
 
   const readTime = post.readTimeMin || estimateReadTime(post.body || "");
 
@@ -96,14 +102,23 @@ export default async function BlogPostPage({ params }: Params) {
         <MarkdownBody source={post.body || ""} />
       </div>
 
+      {promo?.status === "expired" && (
+        <div className="mx-auto mt-10 max-w-3xl px-4 sm:px-6">
+          <p className="rounded-xl border border-line bg-ink-card px-4 py-3 text-sm text-muted">
+            This offer has ended{promo.endsAt ? ` on ${formatDate(promo.endsAt)}` : ""}. Get in touch
+            for what&apos;s running now.
+          </p>
+        </div>
+      )}
+
       <Reveal className="mx-auto my-16 max-w-3xl px-4 sm:px-6">
         <div className="rounded-2xl border border-accent/40 bg-ink-card p-8 text-center shadow-glow">
           <h2 className="font-display text-2xl uppercase">Ready to put this into action?</h2>
           <p className="mx-auto mt-3 max-w-xl text-muted">
             Get a plan built around your goals and your blood work. Book a consultation call.
           </p>
-          <ButtonLink href="/contact" size="lg" className="mt-6">
-            {site.ctaLabel}
+          <ButtonLink href={promo?.ctaHref || "/contact"} size="lg" className="mt-6">
+            {promo?.ctaLabel || site.ctaLabel}
           </ButtonLink>
         </div>
       </Reveal>

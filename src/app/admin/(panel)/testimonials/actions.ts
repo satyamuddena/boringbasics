@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getDb, schema as t } from "@/db";
 import { auditedMutation } from "@/lib/admin";
 import { str, num, bool } from "@/lib/forms";
+import { upsertPromoBanner, deletePromoFor } from "@/lib/promoBanner";
 
 function parse(formData: FormData) {
   return {
@@ -33,8 +34,9 @@ export async function saveTestimonialAction(formData: FormData) {
       entityId: () => id,
       after: () => db.select().from(t.testimonials).where(eq(t.testimonials.id, id)).get(),
     });
+    upsertPromoBanner("testimonial", id, formData);
   } else {
-    await auditedMutation({
+    const result = await auditedMutation({
       action: "create",
       entityType: "testimonial",
       run: () => db.insert(t.testimonials).values(values).run(),
@@ -42,6 +44,7 @@ export async function saveTestimonialAction(formData: FormData) {
       after: (r) =>
         db.select().from(t.testimonials).where(eq(t.testimonials.id, Number(r.lastInsertRowid))).get(),
     });
+    upsertPromoBanner("testimonial", Number(result.lastInsertRowid), formData);
   }
   revalidatePath("/");
   revalidatePath("/testimonials");
@@ -58,6 +61,7 @@ export async function deleteTestimonialAction(id: number) {
     run: () => db.delete(t.testimonials).where(eq(t.testimonials.id, id)).run(),
     entityId: () => id,
   });
+  deletePromoFor("testimonial", id);
   revalidatePath("/");
   revalidatePath("/testimonials");
   redirect("/admin/testimonials");

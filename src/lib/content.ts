@@ -1,7 +1,15 @@
 import { cache } from "react";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import * as fallback from "@/content/site";
+import {
+  defaultPromoHref,
+  isPromoActive,
+  isPromoKind,
+  promoStatus,
+  type PromoKind,
+  type PromoStatus,
+} from "./promoBannerCore";
 import type {
   Trainer,
   Stat,
@@ -273,6 +281,84 @@ export const getPosts = cache(async (): Promise<PostListItem[]> =>
     }));
   }, []),
 );
+
+/* ------------------------------------------------------------------ */
+/*  Promotion banner — the strip under the header.                     */
+/* ------------------------------------------------------------------ */
+
+export interface ActivePromo {
+  id: number;
+  bannerText: string;
+  ctaLabel: string | null;
+  href: string;
+  endsAt: string | null;
+}
+
+/**
+ * The (at most two) promotions currently live, newest-configured order.
+ *
+ * Two is a deliberate cap: the strip rotates between them, and a third would
+ * cycle slowly enough that a visitor could easily never see it.
+ */
+export const getActivePromotions = cache(async (): Promise<ActivePromo[]> =>
+  safe(() => {
+    const db = getDb();
+    const rows = db
+      .select()
+      .from(t.promoBanner)
+      .where(eq(t.promoBanner.isEnabled, true))
+      .orderBy(asc(t.promoBanner.displayOrder), asc(t.promoBanner.id))
+      .all();
+
+    const live = rows.filter((r) => isPromoActive(r));
+    return live.slice(0, 2).map((r) => {
+      let slug: string | null = null;
+      // Only look up the slug when we actually need it for the fallback link.
+      if (!r.ctaHref && isPromoKind(r.kind)) {
+        if (r.kind === "post") {
+          slug = db.select({ s: t.posts.slug }).from(t.posts).where(eq(t.posts.id, r.refId)).get()?.s ?? null;
+        } else if (r.kind === "program") {
+          slug =
+            db.select({ s: t.programs.slug }).from(t.programs).where(eq(t.programs.id, r.refId)).get()?.s ??
+            null;
+        }
+      }
+      return {
+        id: r.id,
+        bannerText: r.bannerText,
+        ctaLabel: r.ctaLabel,
+        href: r.ctaHref || defaultPromoHref(isPromoKind(r.kind) ? r.kind : "post", slug),
+        endsAt: r.endsAt,
+      };
+    });
+  }, []),
+);
+
+/** The promo attached to one item, for its own page's CTA and expiry notice. */
+export const getPromoForItem = cache(
+  async (kind: PromoKind, refId: number): Promise<PromoItemMeta | null> =>
+    safe(() => {
+      const r = getDb()
+        .select()
+        .from(t.promoBanner)
+        .where(and(eq(t.promoBanner.kind, kind), eq(t.promoBanner.refId, refId)))
+        .get();
+      if (!r) return null;
+      return {
+        ctaLabel: r.ctaLabel,
+        ctaHref: r.ctaHref,
+        endsAt: r.endsAt,
+        status: promoStatus(r),
+      };
+    }, null),
+);
+
+export interface PromoItemMeta {
+  ctaLabel: string | null;
+  ctaHref: string | null;
+  endsAt: string | null;
+  status: PromoStatus;
+}
 
 export const getPost = cache(async (slug: string): Promise<Post | null> =>
   safe(() => {

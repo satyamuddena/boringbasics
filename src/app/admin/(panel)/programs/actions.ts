@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getDb, schema as t } from "@/db";
 import { auditedMutation } from "@/lib/admin";
 import { str, num, bool, lines, slugify, uniqueSlug } from "@/lib/forms";
+import { upsertPromoBanner, deletePromoFor } from "@/lib/promoBanner";
 
 function parse(formData: FormData) {
   const title = str(formData, "title");
@@ -49,8 +50,9 @@ export async function saveProgramAction(formData: FormData) {
       entityId: () => id,
       after: () => db.select().from(t.programs).where(eq(t.programs.id, id)).get(),
     });
+    upsertPromoBanner("program", id, formData);
   } else {
-    await auditedMutation({
+    const result = await auditedMutation({
       action: "create",
       entityType: "program",
       run: () => db.insert(t.programs).values(values).run(),
@@ -58,6 +60,7 @@ export async function saveProgramAction(formData: FormData) {
       after: (r) =>
         db.select().from(t.programs).where(eq(t.programs.id, Number(r.lastInsertRowid))).get(),
     });
+    upsertPromoBanner("program", Number(result.lastInsertRowid), formData);
   }
   redirect("/admin/programs");
 }
@@ -72,5 +75,6 @@ export async function deleteProgramAction(id: number) {
     run: () => db.delete(t.programs).where(eq(t.programs.id, id)).run(),
     entityId: () => id,
   });
+  deletePromoFor("program", id);
   redirect("/admin/programs");
 }

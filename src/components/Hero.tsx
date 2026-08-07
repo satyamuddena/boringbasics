@@ -7,8 +7,11 @@ import { getTrainer, getSite } from "@/lib/content";
 
 export async function Hero() {
   const [trainer, site] = await Promise.all([getTrainer(), getSite()]);
+  // `hero-bleed` lets the promo strip's offset be cancelled here in CSS — the
+  // hero is full-bleed and runs *under* the chrome rather than below it. See
+  // the `.promo-on` rules in globals.css.
   return (
-    <section className="relative overflow-hidden pt-16">
+    <section className="hero-bleed relative overflow-hidden pt-16">
       {/* ---------------------------------------------------------------- */}
       {/*  Faceless "body & health" background video + readability scrims  */}
       {/* ---------------------------------------------------------------- */}
@@ -32,7 +35,12 @@ export async function Hero() {
         <div className="accent-radial absolute inset-0 opacity-70" />
       </div>
 
-      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">
+      {/*
+        Top padding is deliberately much smaller than the bottom: the copy sits
+        just under the fixed chrome, and the same value works with or without
+        the promo strip (the strip's own height is handled by .hero-bleed).
+      */}
+      <div className="hero-inner relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-2 sm:px-6 lg:grid-cols-2 lg:pb-24 lg:pt-4">
         {/* Copy */}
         <div className="relative z-10">
           <Reveal>

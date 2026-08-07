@@ -16,6 +16,7 @@ export async function GET() {
     testimonials: db.select().from(t.testimonials).orderBy(asc(t.testimonials.displayOrder)).all(),
     faqs: db.select().from(t.faqs).orderBy(asc(t.faqs.displayOrder)).all(),
     socials: db.select().from(t.socials).orderBy(asc(t.socials.displayOrder)).all(),
+    promoBanner: db.select().from(t.promoBanner).orderBy(asc(t.promoBanner.displayOrder)).all(),
     consultation: db.select().from(t.consultation).where(eq(t.consultation.id, 1)).get() ?? null,
     siteSettings: db.select().from(t.siteSettings).where(eq(t.siteSettings.id, 1)).get() ?? null,
   };

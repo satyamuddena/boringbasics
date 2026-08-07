@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { AdminHeading } from "@/components/admin/ui";
+import { getPromoFor } from "@/lib/promoBanner";
 import { ProgramForm } from "../ProgramForm";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function EditProgramPage({
   return (
     <>
       <AdminHeading title={`Edit: ${program.title}`} />
-      <ProgramForm program={program} />
+      <ProgramForm program={program} promo={getPromoFor("program", program.id)} />
     </>
   );
 }
