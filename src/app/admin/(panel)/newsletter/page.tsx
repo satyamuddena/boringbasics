@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { and, desc, eq, gt, or } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
-import { AdminCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, StatusPill } from "@/components/admin/ui";
+import { AdminAlert, AdminCard, AdminHeading, AdminListControls, AdminTable, AdminTabs, Field, Input, Select, StatusPill } from "@/components/admin/ui";
 import { DeleteForm } from "@/components/admin/DeleteForm";
 import { formatDate, formatDateTime } from "@/lib/datetime";
 import { smtpConfigured } from "@/lib/mail";
@@ -94,61 +93,59 @@ export default async function NewsletterAdminPage({
       <AdminHeading title="Newsletter" />
 
       {sent != null && !error && (
-        <p className="mb-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
+        <AdminAlert tone="ok">
           {mode === "test"
             ? `Test newsletter sent to ${recipient}.`
             : `Newsletter sent to ${sent} of ${total} subscriber${Number(total) === 1 ? "" : "s"}.`}
-        </p>
+        </AdminAlert>
       )}
       {cleared && (
-        <p className="mb-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
+        <AdminAlert tone="ok">
           All test notifications were cleared from Sent history. Broadcast history was not changed.
-        </p>
+        </AdminAlert>
       )}
       {error === "missing" && (
-        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">
-          Subject and message are both required.
-        </p>
+        <AdminAlert tone="bad">Subject and message are both required.</AdminAlert>
       )}
       {error === "invalid-cta" && (
-        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">
+        <AdminAlert tone="bad">
           Add both a button label and a valid http(s) button link, or leave both fields blank.
-        </p>
+        </AdminAlert>
       )}
       {error === "invalid-test-email" && (
-        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">Enter a valid test recipient email address.</p>
+        <AdminAlert tone="bad">Enter a valid test recipient email address.</AdminAlert>
       )}
       {error === "invalid-action" && (
-        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">Choose either test delivery or broadcast delivery.</p>
+        <AdminAlert tone="bad">Choose either test delivery or broadcast delivery.</AdminAlert>
       )}
       {error === "smtp_auth" && (
-        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">
+        <AdminAlert tone="bad">
           SMTP login was rejected. Update <code>SMTP_USER</code> and <code>SMTP_PASS</code> with the mailbox credentials from your email provider, then restart the server.
-        </p>
+        </AdminAlert>
       )}
       {error === "smtp_delivery" && (
-        <p className="mb-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">
+        <AdminAlert tone="bad">
           The email provider could not deliver the newsletter. Check the server log for the provider error.
-        </p>
+        </AdminAlert>
       )}
       {!smtpConfigured() && (
-        <p className="mb-4 rounded-lg border border-line bg-ink-card px-4 py-2 text-sm text-muted">
+        <AdminAlert>
           ⚠ SMTP is not configured (<code>SMTP_HOST/PORT/USER/PASS</code>), so newsletters are
           logged to the server console instead of actually being emailed.
-        </p>
+        </AdminAlert>
       )}
 
-      <div className="mb-6 flex gap-2 border-b border-line">
-        <Link href="/admin/newsletter" className={`border-b-2 px-4 py-2 text-sm font-semibold ${activeTab === "compose" ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg"}`}>
-          Compose & subscribers
-        </Link>
-        <Link href="/admin/newsletter?tab=history" className={`border-b-2 px-4 py-2 text-sm font-semibold ${activeTab === "history" ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg"}`}>
-          Sent history
-        </Link>
-      </div>
+      <AdminTabs
+        active={activeTab}
+        surface="card"
+        tabs={[
+          { key: "compose", label: "Compose & subscribers", href: "/admin/newsletter" },
+          { key: "history", label: "Sent history", href: "/admin/newsletter?tab=history" },
+        ]}
+      />
 
       {activeTab === "history" ? (
-        <AdminCard title="Sent newsletters">
+        <AdminCard flush title="Sent newsletters">
           <div className="space-y-3">
             {hasTestNotifications && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-ink px-4 py-3">
@@ -185,7 +182,7 @@ export default async function NewsletterAdminPage({
           </div>
         </AdminCard>
       ) : <>
-      <AdminCard title={`Send a newsletter (${active} active subscriber${active === 1 ? "" : "s"})`}>
+      <AdminCard flush title={`Send a newsletter (${active} active subscriber${active === 1 ? "" : "s"})`}>
         <form action={sendNewsletterAction} className="space-y-4">
           <Field label="Subject">
             <Input name="subject" required placeholder="e.g. 5 habits that make fat loss stick" />
@@ -211,7 +208,7 @@ export default async function NewsletterAdminPage({
         </form>
       </AdminCard>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <AdminListControls resetHref="/admin/newsletter">
           <Field label="Search">
             <Input name="q" defaultValue={q} placeholder="Email, name, source…" />
@@ -242,7 +239,14 @@ export default async function NewsletterAdminPage({
             </Select>
           </Field>
         </AdminListControls>
-        <AdminTable headers={["Email", "Name", "Source", "Status", "Since", ""]}>
+        <AdminTable
+          headers={["Email", "Name", "Source", "Status", "Since", ""]}
+          empty={
+            allSubscribers.length === 0
+              ? "No subscribers yet — signups come from the footer box and the consultation form opt-in."
+              : "No subscribers match these filters."
+          }
+        >
           {subscribers.map((s) => (
             <tr key={s.id}>
               <td className="px-4 py-3 font-semibold">{s.email}</td>
@@ -262,14 +266,6 @@ export default async function NewsletterAdminPage({
               </td>
             </tr>
           ))}
-          {subscribers.length === 0 && (
-            <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-muted">
-                No subscribers yet — signups come from the footer box and the consultation
-                form opt-in.
-              </td>
-            </tr>
-          )}
         </AdminTable>
       </div>
       </>}

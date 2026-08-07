@@ -6,10 +6,27 @@ import { str } from "@/lib/forms";
 import { sendAdminPush } from "@/lib/push";
 import {
   bookingConfirmedNotification,
+  callReminderNotification,
   paymentReceivedNotification,
   testNotification,
   type PushBookingInput,
 } from "@/lib/pushTemplate";
+import { eq } from "drizzle-orm";
+import { getDb, schema as t } from "@/db";
+
+/**
+ * The same setting the real trigger reads (see lib/pushReminders.ts), so the
+ * test reproduces the wording the trainer will actually receive.
+ *
+ * Not exported: every *export* of a "use server" module has to be an async
+ * server function, and this is a plain synchronous read.
+ */
+function reminderMinutes(): number {
+  return (
+    getDb().select().from(t.siteSettings).where(eq(t.siteSettings.id, 1)).get()
+      ?.pushReminderMinutes ?? 10
+  );
+}
 
 /**
  * A booking that never existed, with every field the real notification is
@@ -26,19 +43,22 @@ const SAMPLE: PushBookingInput = {
   scheduledAt: "2026-07-20T18:00:00+05:30",
 };
 
-export type PushTestKind = "test" | "payment" | "booking";
+export type PushTestKind = "test" | "payment" | "booking" | "reminder";
 
 const build = (kind: PushTestKind) =>
   kind === "payment"
     ? paymentReceivedNotification(SAMPLE)
     : kind === "booking"
       ? bookingConfirmedNotification(SAMPLE)
-      : testNotification();
+      : kind === "reminder"
+        ? callReminderNotification(SAMPLE, reminderMinutes())
+        : testNotification();
 
 export async function sendPushTestAction(formData: FormData) {
   const admin = await requireAdmin();
   const raw = str(formData, "kind");
-  const kind: PushTestKind = raw === "payment" || raw === "booking" ? raw : "test";
+  const kind: PushTestKind =
+    raw === "payment" || raw === "booking" || raw === "reminder" ? raw : "test";
   // "This device" is the useful default; sending to every admin device is
   // opt-in because it buzzes phones belonging to other people.
   const everyone = str(formData, "audience") === "all";

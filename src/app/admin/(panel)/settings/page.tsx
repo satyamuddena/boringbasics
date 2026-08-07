@@ -1,45 +1,62 @@
 import { eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { getConsultation, getSite, getTrainer } from "@/lib/content";
-import { AdminCard, AdminHeading, Field, Input, Textarea, Select, Checkbox, SubmitButton } from "@/components/admin/ui";
+import {
+  AdminAlert,
+  AdminCard,
+  AdminHeading,
+  AdminStickyActions,
+  Field,
+  FieldGroup,
+  Input,
+  Textarea,
+  Select,
+  Checkbox,
+  SubmitButton,
+} from "@/components/admin/ui";
 import { DAYS, HIDEABLE_PAGES } from "@/lib/constants";
 import { saveSettingsAction } from "./actions";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
-import { SignedInDevices } from "@/components/admin/SignedInDevices";
-import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Jump targets for the sticky nav. Anchors rather than tabs: this is one form
+ * with one Save and several `required` fields, and hiding a panel would make
+ * the browser refuse to submit while trying to focus an invisible control.
+ */
+const SECTIONS = [
+  { id: "branding", label: "Branding" },
+  { id: "notification-branding", label: "Notifications" },
+  { id: "site", label: "Site" },
+  { id: "home", label: "Home page" },
+  { id: "pages", label: "Pages" },
+  { id: "popup", label: "Popup" },
+  { id: "consultation", label: "Consultation" },
+  { id: "phone-notifications", label: "Phone alerts" },
+];
 
 export default async function SettingsAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; revoked?: string }>;
+  searchParams: Promise<{ saved?: string }>;
 }) {
-  const [{ saved, revoked }, site, consultation, trainer, admin] = await Promise.all([
+  const [{ saved }, site, consultation, trainer] = await Promise.all([
     searchParams,
     getSite(),
     getConsultation(),
     getTrainer(),
-    requireAdmin(),
   ]);
   const settings = getDb().select().from(t.siteSettings).where(eq(t.siteSettings.id, 1)).get();
 
   return (
     <>
-      <AdminHeading title="Settings" />
-      {saved && (
-        <p className="mb-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
-          Saved.
-        </p>
-      )}
-      {revoked && (
-        <p className="mb-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
-          That device has been signed out and will no longer receive booking notifications.
-        </p>
-      )}
-      <form action={saveSettingsAction} className="max-w-3xl space-y-6">
-        <AdminCard title="Branding">
-          <div className="space-y-5">
+      <AdminHeading title="Settings" sections={SECTIONS} />
+      {saved && <AdminAlert tone="ok">Saved.</AdminAlert>}
+
+      <form action={saveSettingsAction} className="max-w-3xl space-y-4 sm:space-y-6">
+        <AdminCard id="branding" title="Branding">
+          <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Brand name" hint="Used in page titles, checkout, messages and copyright.">
                 <Input name="brandName" defaultValue={trainer.brand} required />
@@ -48,7 +65,7 @@ export default async function SettingsAdminPage({
                 <Input name="brandTagline" defaultValue={trainer.tagline} required />
               </Field>
             </div>
-            <div className="grid gap-5 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-3">
               <ImageUploadField name="logoPath" label="Header logo" kind="brandLogo" defaultValue={site.logoPath} />
               <ImageUploadField name="iconPath" label="Favicon / app icon" kind="brandIcon" defaultValue={site.iconPath} />
               <ImageUploadField name="socialImagePath" label="Social sharing image" kind="brandSocial" defaultValue={site.ogImage} />
@@ -70,7 +87,7 @@ export default async function SettingsAdminPage({
           </div>
         </AdminCard>
 
-        <AdminCard title="Notification branding">
+        <AdminCard id="notification-branding" title="Notification branding">
           <div className="space-y-4">
             <p className="text-sm leading-relaxed text-muted">
               Upload the logo or wordmark used at the top of newsletters and other email notifications.
@@ -86,7 +103,7 @@ export default async function SettingsAdminPage({
           </div>
         </AdminCard>
 
-        <AdminCard title="Site">
+        <AdminCard id="site" title="Site">
           <div className="space-y-4">
             <Field label="Site URL" hint="Canonical URL for SEO — e.g. https://boringbasics.in">
               <Input name="siteUrl" type="url" defaultValue={settings?.siteUrl ?? ""} placeholder={site.url} />
@@ -114,7 +131,7 @@ export default async function SettingsAdminPage({
           </div>
         </AdminCard>
 
-        <AdminCard title="Home-page headlines">
+        <AdminCard id="home" title="Home-page headlines">
           <div className="space-y-4">
             <Field
               label="Hero headline"
@@ -131,7 +148,7 @@ export default async function SettingsAdminPage({
           </div>
         </AdminCard>
 
-        <AdminCard title="Pages">
+        <AdminCard id="pages" title="Pages">
           <p className="mb-3 text-xs text-muted/70">
             Unchecked pages disappear from the menu and their links stop working. Home and
             Contact are always visible.
@@ -148,7 +165,7 @@ export default async function SettingsAdminPage({
           </div>
         </AdminCard>
 
-        <AdminCard title="Home-page welcome popup">
+        <AdminCard id="popup" title="Home-page welcome popup">
           <div className="space-y-4">
             <Checkbox
               name="popupEnabled"
@@ -161,10 +178,8 @@ export default async function SettingsAdminPage({
             <Field label="Message">
               <Textarea name="popupBody" defaultValue={site.popup.body} />
             </Field>
-            <div>
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted">
-                Available slots
-              </span>
+            {/* FieldGroup, not Field: four controls cannot share one <label>. */}
+            <FieldGroup label="Available slots" hint={`Shown as: ${site.popup.slots}`}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Select name="popupDayFrom" defaultValue={settings?.popupDayFrom ?? "Mon"} aria-label="From day">
                   {DAYS.map((d) => (
@@ -183,10 +198,7 @@ export default async function SettingsAdminPage({
                 <Input name="popupTimeFrom" type="time" defaultValue={settings?.popupTimeFrom ?? "16:00"} aria-label="From time" />
                 <Input name="popupTimeTo" type="time" defaultValue={settings?.popupTimeTo ?? "20:00"} aria-label="To time" />
               </div>
-              <span className="mt-1 block text-xs text-muted/70">
-                Shown as: {site.popup.slots}
-              </span>
-            </div>
+            </FieldGroup>
             <Field label="Note" hint='Second info line — e.g. "Strictly one-on-one…"'>
               <Input name="popupNote" defaultValue={site.popup.note} />
             </Field>
@@ -206,7 +218,7 @@ export default async function SettingsAdminPage({
           </div>
         </AdminCard>
 
-        <AdminCard title="Consultation call">
+        <AdminCard id="consultation" title="Consultation call">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Price (₹)">
               <Input name="price" type="number" defaultValue={consultation.price} />
@@ -226,7 +238,7 @@ export default async function SettingsAdminPage({
               <Textarea name="note" defaultValue={consultation.note} />
             </Field>
           </div>
-          <div className="mt-4 rounded-xl border border-warn/40 bg-warn/10 p-4">
+          <AdminAlert tone="warn" className="mt-4">
             <Checkbox
               name="testPaymentEnabled"
               label="Enable test payment mode (skip payment step)"
@@ -236,13 +248,15 @@ export default async function SettingsAdminPage({
               Only works outside production. Live deployments never allow payment bypass,
               even if this box is checked.
             </p>
-          </div>
+          </AdminAlert>
         </AdminCard>
 
-        <AdminCard title="Phone notifications">
+        <AdminCard id="phone-notifications" title="Phone notifications">
           <p className="mb-4 text-sm text-muted">
-            What the installed app buzzes about. Each kind carries its own icon, so a
-            reminder is distinguishable from a new booking at a glance on the lock screen.
+            What the installed app buzzes about. Each kind opens with its own emoji, so a
+            reminder is distinguishable from a new booking at a glance on the lock screen —
+            on iPhone that emoji is the only marker, because iOS shows the app icon on every
+            notification regardless of the artwork sent.
           </p>
           <div className="space-y-3">
             <div>
@@ -292,13 +306,12 @@ export default async function SettingsAdminPage({
           </div>
         </AdminCard>
 
-        <SubmitButton>Save settings</SubmitButton>
+        {/* Last child of the form on purpose: a sticky element stops at its
+            parent's edge, so the bar never floats over the devices card below. */}
+        <AdminStickyActions>
+          <SubmitButton>Save settings</SubmitButton>
+        </AdminStickyActions>
       </form>
-
-      {/* Outside the settings form on purpose — each row submits its own. */}
-      <div className="mt-6 max-w-3xl">
-        <SignedInDevices userId={admin.id} />
-      </div>
     </>
   );
 }

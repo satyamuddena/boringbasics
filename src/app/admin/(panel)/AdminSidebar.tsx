@@ -10,6 +10,12 @@ export interface NavItem {
   label: string;
   href: string;
   icon: NavIconName;
+  /**
+   * Extra routes this entry owns. One sidebar entry can front several pages —
+   * Diagnostics covers three — and without this it would only light up on the
+   * one it links to.
+   */
+  match?: string[];
 }
 
 export interface NavSection {
@@ -40,8 +46,12 @@ const collapsedStore = {
 };
 
 /** /admin/leads matches /admin/leads/12 but /admin must not match everything. */
-function isActive(pathname: string, href: string) {
+function matchesRoute(pathname: string, href: string) {
   return href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function isActive(pathname: string, item: NavItem) {
+  return [item.href, ...(item.match ?? [])].some((href) => matchesRoute(pathname, href));
 }
 
 function NavLinks({
@@ -63,14 +73,17 @@ function NavLinks({
           key={section.label ?? "dashboard"}
           className={index ? `${compact ? "mt-2 pt-2" : "mt-3 pt-3"} border-t border-line` : undefined}
         >
+          {/* accent-label, not accent: raw accent on the light theme's paper
+              rail is only 2.7:1 and fails even the large-text bar. The token
+              keeps full brand orange on dark and darkens on light. */}
           {section.label && !collapsed && (
-            <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
+            <p className="truncate px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-accent-label">
               {section.label}
             </p>
           )}
           <div className="space-y-1">
             {section.items.map((item) => {
-              const active = isActive(pathname, item.href);
+              const active = isActive(pathname, item);
               return (
                 <Link
                   key={item.href}
@@ -139,8 +152,18 @@ export function AdminSidebar({
   return (
     <>
       {/* Desktop rail */}
+      {/*
+        Sticky, its own height, its own scrollbar.
+
+        As a plain flex child the rail stretched to the *page* height — 3967px
+        on the settings page — so scrolling took the logo, every nav link and
+        the sign-out footer off the top of the screen with it. `h-screen` stops
+        the stretch (an explicit height beats `align-items: stretch`), which is
+        what gives `sticky` room to work, and `overflow-y-auto` keeps the rail
+        usable when the nav is taller than a short viewport.
+      */}
       <aside
-        className={`hidden shrink-0 border-r border-line bg-ink-soft p-4 transition-[width] duration-200 md:block ${
+        className={`hidden shrink-0 border-r border-line bg-ink-soft p-4 transition-[width] duration-200 md:sticky md:top-0 md:block md:h-screen md:self-start md:overflow-y-auto ${
           collapsed ? "w-16" : "w-56"
         }`}
       >
@@ -149,7 +172,12 @@ export function AdminSidebar({
             collapsed ? "flex flex-col items-center gap-3" : "flex items-center justify-between gap-2"
           }
         >
-          <div className="min-w-0">{collapsed ? brandMark : brand}</div>
+          {/* overflow-hidden is the guard, not the fix: the wordmark is
+              `whitespace-nowrap`, so without a clip it simply painted itself
+              underneath the collapse button. */}
+          <div className="min-w-0 flex-1 overflow-hidden">
+            {collapsed ? brandMark : brand}
+          </div>
           <button
             type="button"
             onClick={toggle}

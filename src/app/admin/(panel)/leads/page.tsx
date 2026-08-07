@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
-import { AdminHeading, AdminListControls, AdminTable, Field, Input, Select, StatusPill } from "@/components/admin/ui";
+import { AdminAlert, AdminHeading, AdminListControls, AdminTable, btnGhost, Field, Input, Select, StatusPill } from "@/components/admin/ui";
 import { BookingStageSummary } from "@/components/admin/BookingProgressBar";
 import { BookingTabs, type BookingTab } from "@/components/admin/BookingTabs";
 import { BookingCard } from "@/components/admin/BookingCard";
@@ -244,21 +244,21 @@ export default async function LeadsAdminPage({
       <PushToggle vapidPublicKey={process.env.VAPID_PUBLIC_KEY} className="mb-4" />
 
       {waLead && (
-        <div
-          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+        <AdminAlert
+          tone={
             waStatus === "delivered" || waStatus === "read"
-              ? "border-ok/40 bg-ok/10 text-ok"
+              ? "ok"
               : waStatus === "failed" || waStatus === "undelivered"
-                ? "border-bad/40 bg-bad/10 text-bad"
-                : "border-line bg-ink-card text-muted"
-          }`}
+                ? "bad"
+                : "info"
+          }
         >
           <p>
             Booking #{waLead} WhatsApp delivery status: <strong>{waStatus || "unknown"}</strong>
             {waCode ? ` (error ${waCode})` : ""}.
           </p>
           {waMessage && <p className="mt-1">{waMessage}</p>}
-        </div>
+        </AdminAlert>
       )}
 
       <AdminListControls
@@ -316,7 +316,7 @@ export default async function LeadsAdminPage({
             />
             {l.status !== "closed" && (
               <form action={setLeadStatusAction.bind(null, l.id, "closed")}>
-                <button className="rounded-lg border border-line px-2 py-1 text-xs text-muted hover:border-accent hover:text-accent">
+                <button className={`${btnGhost} px-2 py-1 text-xs`}>
                   Close
                 </button>
               </form>
@@ -405,7 +405,7 @@ export default async function LeadsAdminPage({
                 />
                 {l.status !== "closed" && (
                   <form action={setLeadStatusAction.bind(null, l.id, "closed")}>
-                    <button className="rounded-lg border border-line px-2 py-1 text-xs text-muted hover:border-accent hover:text-accent">
+                    <button className={`${btnGhost} px-2 py-1 text-xs`}>
                       Close
                     </button>
                   </form>

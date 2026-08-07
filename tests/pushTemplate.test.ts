@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   bookingConfirmedNotification,
+  callReminderNotification,
   firstName,
   paymentReceivedNotification,
   testNotification,
@@ -50,7 +51,7 @@ function assertNoSecrets(text: string) {
 
 test("a confirmed booking shows a first name and the slot time", () => {
   const n = bookingConfirmedNotification(BOOKING);
-  assert.equal(n.title, "New booking");
+  assert.equal(n.title, "📅 New booking");
   assert.match(n.body, /^Priya · /);
   assert.match(n.body, /12 August/);
   assert.match(n.body, /6:00 PM/);
@@ -63,7 +64,7 @@ test("a confirmed booking leaks nothing else onto the lock screen", () => {
 
 test("a payment notification leaks nothing, including the amount", () => {
   const n = paymentReceivedNotification(BOOKING);
-  assert.equal(n.title, "Payment received");
+  assert.equal(n.title, "💵 Payment received");
   assert.equal(n.body, "Priya · no slot picked yet");
   assertNoSecrets(`${n.title} ${n.body}`);
 });
@@ -96,6 +97,37 @@ test("a missing or blank name degrades to a stand-in rather than an empty body",
   assert.equal(firstName(null), "Someone");
   assert.equal(firstName(undefined), "Someone");
   assert.equal(bookingConfirmedNotification({ ...BOOKING, name: "" }).body.startsWith("Someone"), true);
+});
+
+/**
+ * The emoji is the only per-kind marker an iPhone actually renders: WebKit
+ * ignores `icon` and `badge` and shows the Home Screen icon on every
+ * notification. If two kinds ever share a leading glyph, the lock screen stops
+ * distinguishing them on the one platform this app is installed on.
+ */
+test("every kind opens with its own distinct emoji", () => {
+  const titles = {
+    booking: bookingConfirmedNotification(BOOKING).title,
+    payment: paymentReceivedNotification(BOOKING).title,
+    reminder: callReminderNotification(BOOKING, 10).title,
+    test: testNotification().title,
+  };
+
+  const leading = Object.entries(titles).map(([kind, title]) => {
+    const glyph = [...title][0];
+    assert.ok(
+      glyph && !/[\w\s]/.test(glyph),
+      `${kind} title should start with an emoji, got: ${title}`,
+    );
+    assert.match(title, /^\S+ \S/, `${kind} needs a space after the emoji: ${title}`);
+    return glyph;
+  });
+
+  assert.equal(
+    new Set(leading).size,
+    leading.length,
+    `two kinds share a leading emoji: ${leading.join(" ")}`,
+  );
 });
 
 test("the test notification carries no booking data at all", () => {

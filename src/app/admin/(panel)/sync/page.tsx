@@ -2,10 +2,7 @@
 
 
 import { useState } from "react";
-import { AdminCard, AdminHeading } from "@/components/admin/ui";
-
-const btnClass =
-  "inline-flex items-center justify-center rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-deep";
+import { AdminAlert, AdminCard, AdminHeading, btnPrimary } from "@/components/admin/ui";
 
 export default function SyncAdminPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -42,14 +39,14 @@ export default function SyncAdminPage() {
     <>
       <AdminHeading title="Data Sync" />
 
-      <div className="max-w-2xl space-y-6">
+      <div className="max-w-3xl space-y-4 sm:space-y-6">
         <AdminCard title="Export">
           <p className="mb-4 text-sm text-muted">
             Download all content tables (trainer profile, programs, testimonials, FAQs, socials,
             consultation &amp; site settings) as a single JSON file. User accounts, leads,
             subscribers and audit logs are <strong>not</strong> included.
           </p>
-          <a href="/api/admin/sync/export" className={btnClass}>
+          <a href="/api/admin/sync/export" className={btnPrimary}>
             Download export
           </a>
         </AdminCard>
@@ -60,10 +57,10 @@ export default function SyncAdminPage() {
             every content row in the database with the data from the file.
           </p>
 
-          <div className="mb-4 rounded-xl border border-warn/40 bg-warn/10 p-4 text-sm text-warn">
+          <AdminAlert tone="warn">
             <strong>⚠ Destructive action</strong> — importing will delete and replace all existing
             content. Make sure you have a current export as a backup before proceeding.
-          </div>
+          </AdminAlert>
 
           <div className="space-y-4">
             <input
@@ -82,22 +79,22 @@ export default function SyncAdminPage() {
               type="button"
               onClick={handleImport}
               disabled={!file || status === "uploading"}
-              className={`${btnClass} disabled:cursor-not-allowed disabled:opacity-50`}
+              className={btnPrimary}
             >
               {status === "uploading" ? "Importing…" : "Upload & import"}
             </button>
           </div>
 
           {status === "success" && (
-            <p className="mt-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
+            <AdminAlert tone="ok" className="mt-4">
               Import complete — all content tables have been replaced.
-            </p>
+            </AdminAlert>
           )}
 
           {status === "error" && (
-            <p className="mt-4 rounded-lg border border-bad/40 bg-bad/10 px-4 py-2 text-sm text-bad">
+            <AdminAlert tone="bad" className="mt-4">
               {errorMsg}
-            </p>
+            </AdminAlert>
           )}
         </AdminCard>
       </div>

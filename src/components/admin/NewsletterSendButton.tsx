@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { btnAccentOutline, btnPrimary } from "./ui";
 
 export function NewsletterSendControls({ subscriberCount }: { subscriberCount: number }) {
   const { pending, data } = useFormStatus();
@@ -16,7 +17,7 @@ export function NewsletterSendControls({ subscriberCount }: { subscriberCount: n
           name="intent"
           value="test"
           disabled={pending}
-          className="inline-flex min-w-44 items-center justify-center gap-2 rounded-lg border border-accent px-5 py-2.5 text-sm font-semibold text-accent transition-colors hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-65"
+          className={`${btnAccentOutline} min-w-44`}
         >
           {pendingIntent === "test" && <Spinner />}
           {pendingIntent === "test" ? "Sending test…" : "Send test email"}
@@ -29,7 +30,7 @@ export function NewsletterSendControls({ subscriberCount }: { subscriberCount: n
           onClick={(event) => {
             if (!window.confirm(`Send this newsletter to all ${recipients}?`)) event.preventDefault();
           }}
-          className="inline-flex min-w-44 items-center justify-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-deep disabled:cursor-not-allowed disabled:opacity-65"
+          className={`${btnPrimary} min-w-44 gap-2`}
         >
           {pendingIntent === "broadcast" && <Spinner />}
           {pendingIntent === "broadcast" ? `Sending to ${recipients}…` : `Send to all ${recipients}`}

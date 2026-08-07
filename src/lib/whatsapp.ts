@@ -150,3 +150,36 @@ export async function getTwilioWhatsAppStatus(sid: string): Promise<WhatsAppSend
     return { ok: false, sid, error: "Unable to contact Twilio. Please try again." };
   }
 }
+
+/**
+ * Which Twilio variables are present — the first thing to check when nothing
+ * sends. Booleans only: a token must never reach a page.
+ *
+ * The two Content SIDs are separate because they fail separately: without the
+ * trainer one no alert goes out, without the customer one the booker hears
+ * nothing, and each is approved by Meta on its own schedule.
+ */
+export function twilioDiagnostics(): {
+  accountSidSet: boolean;
+  authTokenSet: boolean;
+  fromSet: boolean;
+  trainerTemplateSet: boolean;
+  customerTemplateSet: boolean;
+  ready: boolean;
+} {
+  const accountSidSet = Boolean(process.env.TWILIO_ACCOUNT_SID?.trim());
+  const authTokenSet = Boolean(process.env.TWILIO_AUTH_TOKEN?.trim());
+  const fromSet = Boolean(process.env.TWILIO_WHATSAPP_FROM?.trim());
+  const trainerTemplateSet = Boolean(process.env.TWILIO_WHATSAPP_CONTENT_SID?.trim());
+  const customerTemplateSet = Boolean(process.env.TWILIO_WHATSAPP_CUSTOMER_CONTENT_SID?.trim());
+  return {
+    accountSidSet,
+    authTokenSet,
+    fromSet,
+    trainerTemplateSet,
+    customerTemplateSet,
+    // The account trio is what makes a send possible at all; a missing template
+    // only takes out the one message that uses it.
+    ready: accountSidSet && authTokenSet && fromSet,
+  };
+}

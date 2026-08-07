@@ -1,9 +1,13 @@
-import { AdminCard, AdminHeading, Field, Select, SubmitButton } from "@/components/admin/ui";
+import { AdminAlert, AdminCard, AdminHeading, Field, Select, SubmitButton } from "@/components/admin/ui";
+import { DiagnosticsConfig, DiagnosticsTabs } from "@/components/admin/DiagnosticsTabs";
 import { requireAdmin } from "@/lib/auth";
 import { getDb, schema as t } from "@/db";
 import { pushDiagnostics, pushService, type PushDeviceOutcome } from "@/lib/push";
+import Image from "next/image";
+import { eq } from "drizzle-orm";
 import {
   bookingConfirmedNotification,
+  callReminderNotification,
   paymentReceivedNotification,
   testNotification,
 } from "@/lib/pushTemplate";
@@ -26,6 +30,7 @@ const KIND_LABEL: Record<string, string> = {
   test: "Test notification",
   payment: "Payment received",
   booking: "Booking confirmed",
+  reminder: "Call reminder",
 };
 
 interface SentResult {
@@ -56,10 +61,21 @@ export default async function PushTestPage({
   const admin = await requireAdmin();
   const diag = pushDiagnostics();
   const result = parseResult(rawResult);
+  // Scheme only. web-push rejects anything that is not mailto: or https:, which
+  // is the failure worth surfacing — the address behind it is a real mailbox
+  // and has no business being printed on a page.
+  const subjectScheme = diag.subject.startsWith("mailto:")
+    ? "mailto:"
+    : diag.subject.startsWith("https://")
+      ? "https://"
+      : "unusable scheme";
 
   const db = getDb();
   const devices = db.select().from(t.pushSubscriptions).all();
   const mine = devices.filter((d) => d.userId === admin.id);
+  const minutes =
+    db.select().from(t.siteSettings).where(eq(t.siteSettings.id, 1)).get()?.pushReminderMinutes ??
+    10;
 
   const previews = [
     { key: "test", note: "What the Send test button sends.", body: testNotification() },
@@ -73,47 +89,27 @@ export default async function PushTestPage({
       note: "Fires when Calendly confirms a time.",
       body: bookingConfirmedNotification(SAMPLE),
     },
+    {
+      key: "reminder",
+      note: `Fires ${minutes} minutes before a confirmed call.`,
+      body: callReminderNotification(SAMPLE, minutes),
+    },
   ];
 
   return (
     <>
-      <AdminHeading title="Notification Test" />
+      <AdminHeading title="Diagnostics" />
 
-      {/* Configuration — the first thing to check when nothing arrives. */}
-      <div
-        className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
-          diag.ready ? "border-ok/40 bg-ok/10 text-ok" : "border-bad/40 bg-bad/10 text-bad"
-        }`}
-      >
-        <p className="font-semibold">
-          {diag.ready ? "Push is configured" : "Push is not configured"}
-        </p>
-        <ul className="mt-2 space-y-0.5 text-xs">
-          <li>VAPID_PUBLIC_KEY: {diag.publicKeySet ? "set" : "missing"}</li>
-          <li>VAPID_PRIVATE_KEY: {diag.privateKeySet ? "set" : "missing"}</li>
-          <li>
-            Subject: <code>{diag.subject}</code> (from {diag.subjectSource})
-          </li>
-        </ul>
-        {diag.problem && <p className="mt-2 text-xs">{diag.problem}</p>}
-        {!diag.ready && (
-          <p className="mt-2 text-xs">
-            Generate a pair on your own machine with{" "}
-            <code>npx web-push generate-vapid-keys</code>, set the variables in Coolify, and
-            redeploy. They are runtime variables — no rebuild needed.
-          </p>
-        )}
-      </div>
+      <div className="max-w-3xl">
+      {!diag.ready && (
+        <AdminAlert tone="warn">
+          Push is not configured, so nothing can be sent — see Configuration below.
+        </AdminAlert>
+      )}
 
       {/* Outcome of the last send, per device. */}
       {result && (
-        <div
-          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
-            result.ok
-              ? "border-ok/40 bg-ok/10 text-ok"
-              : "border-bad/40 bg-bad/10 text-bad"
-          }`}
-        >
+        <AdminAlert tone={result.ok ? "ok" : "bad"}>
           <p className="font-semibold">
             {KIND_LABEL[kind] ?? "Notification"} —{" "}
             {result.skipped
@@ -143,11 +139,13 @@ export default async function PushTestPage({
               probably in the foreground, or notifications are muted in the OS.
             </p>
           )}
-        </div>
+        </AdminAlert>
       )}
 
-      <AdminCard title="Send a dummy notification">
-        <form action={sendPushTestAction} className="max-w-xl space-y-4">
+      <DiagnosticsTabs active="push" />
+
+      <AdminCard flush title="Send a dummy notification">
+        <form action={sendPushTestAction} className="space-y-4">
           <Field
             label="Notification"
             hint="These are the exact builders the real booking triggers use — not a copy."
@@ -156,6 +154,7 @@ export default async function PushTestPage({
               <option value="test">Test notification</option>
               <option value="payment">Payment received</option>
               <option value="booking">Booking confirmed</option>
+              <option value="reminder">Call reminder</option>
             </Select>
           </Field>
           <Field
@@ -168,15 +167,36 @@ export default async function PushTestPage({
             </Select>
           </Field>
 
-          <div className="rounded-lg border border-line bg-ink p-4 text-sm leading-6">
+          {/* Laid out like a lock-screen row — artwork, then title and body —
+              because the per-kind icon is the thing that makes a reminder
+              distinguishable from a booking at a glance, and it is exactly what
+              a text-only preview cannot show you. */}
+          <div className="rounded-xl border border-line bg-ink p-4 text-sm leading-6">
             {previews.map((p) => (
-              <div key={p.key} className="mb-4 last:mb-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-fg">
-                  {KIND_LABEL[p.key]}
-                </p>
-                <p className="mt-1 font-semibold text-fg">{p.body.title}</p>
-                <p className="text-muted">{p.body.body}</p>
-                <p className="mt-0.5 text-xs text-muted/70">{p.note}</p>
+              <div key={p.key} className="mb-4 flex gap-3 last:mb-0">
+                <Image
+                  src={p.body.icon}
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 shrink-0 rounded-lg border border-line object-contain"
+                />
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-fg">
+                    <Image
+                      src={p.body.badge}
+                      alt=""
+                      width={14}
+                      height={14}
+                      // The monochrome silhouette Android puts in the status bar.
+                      className="h-3.5 w-3.5 shrink-0 object-contain opacity-70"
+                    />
+                    {KIND_LABEL[p.key]}
+                  </p>
+                  <p className="mt-1 font-semibold text-fg">{p.body.title}</p>
+                  <p className="text-muted">{p.body.body}</p>
+                  <p className="mt-0.5 text-xs text-muted/70">{p.note}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -190,8 +210,7 @@ export default async function PushTestPage({
         </form>
       </AdminCard>
 
-      <div className="mt-6">
-        <AdminCard title="Registered devices">
+      <AdminCard title="Registered devices" className="mt-6">
           {devices.length === 0 ? (
             <p className="text-sm text-muted">
               No device has notifications turned on yet. Install the app on a phone, open
@@ -215,14 +234,38 @@ export default async function PushTestPage({
               ))}
             </ul>
           )}
-        </AdminCard>
-      </div>
+      </AdminCard>
 
-      <p className="mt-6 text-xs text-muted/70">
-        iPhone only delivers to an app added to the Home Screen — never a Safari tab — and needs
-        iOS 16.4 or newer. A device that stops responding is dropped automatically the first time
-        the push service reports it gone.
-      </p>
+      <DiagnosticsConfig
+        problem={diag.problem}
+        vars={[
+          {
+            name: "VAPID_PUBLIC_KEY",
+            set: diag.publicKeySet,
+            note: "Identifies this server to the push service.",
+          },
+          {
+            name: "VAPID_PRIVATE_KEY",
+            set: diag.privateKeySet,
+            note: "Signs each push. Generate the pair with npx web-push generate-vapid-keys.",
+          },
+          {
+            name: "VAPID_SUBJECT",
+            set: diag.subjectSource === "VAPID_SUBJECT",
+            optional: true,
+            // The address itself is a real mailbox, so only the scheme and the
+            // source are reported — those are what actually go wrong.
+            note: `Contact URI for the push service — ${subjectScheme}, from ${diag.subjectSource}. Falls back to ADMIN_EMAIL.`,
+          },
+        ]}
+      >
+        <p className="mt-4 text-xs text-muted/70">
+          iPhone only delivers to an app added to the Home Screen — never a Safari tab — and
+          needs iOS 16.4 or newer. A device that stops responding is dropped automatically the
+          first time the push service reports it gone.
+        </p>
+      </DiagnosticsConfig>
+      </div>
     </>
   );
 }

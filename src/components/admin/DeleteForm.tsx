@@ -1,5 +1,7 @@
 "use client";
 
+import { btnDanger } from "./ui";
+
 /** Delete button with a native confirm guard, submitting a server action. */
 export function DeleteForm({
   action,
@@ -18,10 +20,7 @@ export function DeleteForm({
       }}
       className="inline"
     >
-      <button
-        type="submit"
-        className="rounded-lg border border-bad/40 px-3 py-1.5 text-xs text-bad transition-colors hover:bg-bad/10"
-      >
+      <button type="submit" className={btnDanger}>
         {label}
       </button>
     </form>

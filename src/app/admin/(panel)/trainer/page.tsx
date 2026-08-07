@@ -1,13 +1,31 @@
 import { asc } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { getTrainer } from "@/lib/content";
-import { AdminCard, AdminHeading, Checkbox, Field, Input, Textarea, SubmitButton } from "@/components/admin/ui";
+import {
+  AdminAlert,
+  AdminCard,
+  AdminHeading,
+  AdminStickyActions,
+  Checkbox,
+  Field,
+  FieldGroup,
+  Input,
+  Textarea,
+  SubmitButton,
+} from "@/components/admin/ui";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { StatsEditor } from "@/components/admin/StatsEditor";
 import { GalleryEditor } from "@/components/admin/GalleryEditor";
 import { updateTrainerAction, pickProfileImageAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const SECTIONS = [
+  { id: "identity", label: "Identity" },
+  { id: "bio", label: "Bio" },
+  { id: "images", label: "Images" },
+  { id: "stats", label: "Stats bar" },
+];
 
 export default async function TrainerAdminPage({
   searchParams,
@@ -25,14 +43,11 @@ export default async function TrainerAdminPage({
 
   return (
     <>
-      <AdminHeading title="Trainer Profile" />
-      {saved && (
-        <p className="mb-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
-          Saved.
-        </p>
-      )}
-      <form action={updateTrainerAction} className="max-w-3xl space-y-6">
-        <AdminCard title="Identity">
+      <AdminHeading title="Trainer Profile" sections={SECTIONS} />
+      {saved && <AdminAlert tone="ok">Saved.</AdminAlert>}
+
+      <form action={updateTrainerAction} className="max-w-3xl space-y-4 sm:space-y-6">
+        <AdminCard id="identity" title="Identity">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name">
               <Input name="fullName" defaultValue={trainer.fullName} required />
@@ -69,7 +84,7 @@ export default async function TrainerAdminPage({
           </div>
         </AdminCard>
 
-        <AdminCard title="Bio & philosophy">
+        <AdminCard id="bio" title="Bio & philosophy">
           <div className="space-y-4">
             <Field label="Short bio" hint="Used in page metadata and the hero.">
               <Textarea name="shortBio" defaultValue={trainer.shortBio} />
@@ -86,7 +101,7 @@ export default async function TrainerAdminPage({
           </div>
         </AdminCard>
 
-        <AdminCard title="Images">
+        <AdminCard id="images" title="Images">
           <div className="space-y-4">
             <ImageUploadField name="profileImage" label="Profile image" kind="profile" defaultValue={trainer.profileImage} />
             <ImageUploadField
@@ -95,10 +110,8 @@ export default async function TrainerAdminPage({
               kind="program"
               defaultValue={trainer.certificateImage ?? ""}
             />
-            <div>
-              <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted">
-                Gallery images (About page)
-              </span>
+            {/* FieldGroup, not Field: the gallery is a grid of many controls. */}
+            <FieldGroup label="Gallery images (About page)">
               <p className="mb-2 text-xs text-muted/70">
                 ★ on a photo makes it the profile picture (saves the form immediately).
               </p>
@@ -108,15 +121,17 @@ export default async function TrainerAdminPage({
                 profileAction={pickProfileImageAction}
                 currentProfile={trainer.profileImage}
               />
-            </div>
+            </FieldGroup>
           </div>
         </AdminCard>
 
-        <AdminCard title="Stats bar">
+        <AdminCard id="stats" title="Stats bar">
           <StatsEditor name="stats" initial={statRows} />
         </AdminCard>
 
-        <SubmitButton>Save profile</SubmitButton>
+        <AdminStickyActions>
+          <SubmitButton>Save profile</SubmitButton>
+        </AdminStickyActions>
       </form>
     </>
   );

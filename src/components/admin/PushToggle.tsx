@@ -6,6 +6,7 @@ import {
   savePushSubscriptionAction,
   sendTestPushAction,
 } from "@/app/admin/(panel)/actions";
+import { btnGhost, btnPrimary } from "./ui";
 
 /**
  * Turns booking notifications on for this device.
@@ -249,7 +250,7 @@ export function PushToggle({
           <button
             type="button"
             onClick={turnOn}
-            className="shrink-0 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-accent-deep"
+            className={`${btnPrimary} shrink-0 px-3 py-2 text-xs`}
           >
             Turn on
           </button>
@@ -267,7 +268,7 @@ export function PushToggle({
               type="button"
               onClick={sendTest}
               disabled={pending}
-              className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
+              className={`${btnGhost} px-3 py-2 text-xs font-semibold disabled:opacity-60`}
             >
               {pending ? "Sending…" : "Send test"}
             </button>

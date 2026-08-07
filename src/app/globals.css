@@ -14,6 +14,10 @@
   --color-accent: var(--brand-accent, #ff5a0a);
   --color-accent-soft: color-mix(in srgb, var(--brand-accent, #ff5a0a) 78%, white);
   --color-accent-deep: color-mix(in srgb, var(--brand-accent, #ff5a0a) 78%, black);
+  /* Accent for small text (nav section headings). Full strength on dark, where
+     it clears 6:1; darkened in .light, where raw accent on paper is only 2.7:1
+     and fails even the large-text bar. Flips with the theme like ok/warn/bad. */
+  --color-accent-label: var(--brand-accent, #ff5a0a);
 
   /* Semantic status colors (flip with theme for contrast) */
   --color-ok: #4ade80;
@@ -46,6 +50,7 @@
   --color-fg: #171512; /* primary text */
 
   --color-accent-soft: color-mix(in srgb, var(--brand-accent, #ff5a0a) 78%, black);
+  --color-accent-label: color-mix(in srgb, var(--brand-accent, #ff5a0a) 70%, black);
 
   --color-ok: #15803d;
   --color-warn: #a16207;

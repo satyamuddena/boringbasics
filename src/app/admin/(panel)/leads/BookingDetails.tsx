@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { BookingNextStep, BookingProgressBar } from "@/components/admin/BookingProgressBar";
+import { btnGhost } from "@/components/admin/ui";
 import { ageLabel, bookingProgress, fullDateTime, money } from "@/lib/bookingProgress";
 import { whatsAppDelivery } from "@/lib/whatsappDelivery";
 import {
@@ -144,7 +145,7 @@ export function BookingDetails({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg border border-line px-2 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-accent"
+        className={`${btnGhost} px-2 py-1 text-xs`}
       >
         View
       </button>
@@ -204,14 +205,14 @@ export function BookingDetails({
                   {/* For a call or an email — WhatsApp records itself. */}
                   {booking.status !== "closed" && (
                     <form action={setLeadStatusAction.bind(null, booking.id, "contacted")}>
-                      <button className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
+                      <button className={`${btnGhost} px-3 py-1.5 text-sm`}>
                         I called or emailed them
                       </button>
                     </form>
                   )}
                   {booking.status !== "closed" && (
                     <form action={setLeadStatusAction.bind(null, booking.id, "closed")}>
-                      <button className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
+                      <button className={`${btnGhost} px-3 py-1.5 text-sm`}>
                         Close this booking
                       </button>
                     </form>
@@ -289,7 +290,7 @@ export function BookingDetails({
                               : "Never asked Calendly"}
                           </span>
                           <form action={refreshCalendlySlotAction.bind(null, booking.id)}>
-                            <button className="mt-1 rounded-lg border border-line px-2 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-accent">
+                            <button className={`${btnGhost} mt-1 px-2 py-1 text-xs`}>
                               Refresh from Calendly
                             </button>
                           </form>

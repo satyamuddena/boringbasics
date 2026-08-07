@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { inputClass } from "./ui";
 
 export interface StatRow {
   label: string;
@@ -8,9 +9,6 @@ export interface StatRow {
   suffix: string;
   prefix: string;
 }
-
-const inputClass =
-  "w-full rounded-lg border border-line bg-ink px-3 py-2 text-sm text-fg placeholder:text-muted/50 focus:border-accent focus:outline-none";
 
 /**
  * Structured editor for the homepage stats bar — no free-text format to break.

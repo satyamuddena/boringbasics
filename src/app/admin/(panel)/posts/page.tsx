@@ -65,7 +65,14 @@ export default async function PostsAdminPage({
           </Select>
         </Field>
       </AdminListControls>
-      <AdminTable headers={["Title", "Category", "Published", "Status", ""]}>
+      <AdminTable
+        headers={["Title", "Category", "Published", "Status", ""]}
+        empty={
+          allPosts.length === 0
+            ? "No posts yet — write your first article."
+            : "No posts match these filters."
+        }
+      >
         {posts.map((p) => (
           <tr key={p.id}>
             <td className="px-4 py-3">
@@ -84,13 +91,6 @@ export default async function PostsAdminPage({
             </td>
           </tr>
         ))}
-        {posts.length === 0 && (
-          <tr>
-            <td colSpan={5} className="px-4 py-8 text-center text-muted">
-              No posts yet — write your first article.
-            </td>
-          </tr>
-        )}
       </AdminTable>
     </>
   );

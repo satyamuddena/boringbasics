@@ -4,7 +4,7 @@ import { AdminCard } from "@/components/admin/ui";
 import { currentSessionTokenHash } from "@/lib/auth";
 import { deviceLabel } from "@/lib/deviceLabel";
 import { ageLabel, fullDateTime } from "@/lib/bookingProgress";
-import { revokeSessionAction } from "@/app/admin/(panel)/settings/actions";
+import { revokeSessionAction } from "@/app/admin/(panel)/devices/actions";
 
 /**
  * Every browser currently signed in as this admin, with a way to sign one out

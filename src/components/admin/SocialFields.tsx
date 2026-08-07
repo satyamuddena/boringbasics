@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { SOCIAL_PLATFORMS, platformFor } from "@/lib/social-platforms";
 import { SocialIcon } from "@/components/SocialIcon";
-
-const inputClass =
-  "w-full rounded-lg border border-line bg-ink px-3 py-2 text-sm text-fg placeholder:text-muted/50 focus:border-accent focus:outline-none";
+import { fieldLabelClass, inputClass } from "./ui";
 
 /**
  * Platform picker + URL/handle inputs for the socials admin form. Selecting a
@@ -30,9 +28,7 @@ export function SocialFields({
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted">
-            Platform
-          </span>
+          <span className={fieldLabelClass}>Platform</span>
           <div className="flex items-center gap-2">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line text-muted">
               <SocialIcon name={spec.key} size={16} />
@@ -60,9 +56,7 @@ export function SocialFields({
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted">
-            Link
-          </span>
+          <span className={fieldLabelClass}>Link</span>
           <input
             name="url"
             type="url"
@@ -73,9 +67,7 @@ export function SocialFields({
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted">
-            Display name / handle
-          </span>
+          <span className={fieldLabelClass}>Display name / handle</span>
           <input
             name="handle"
             required

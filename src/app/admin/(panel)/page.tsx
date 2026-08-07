@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { desc, sql } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
-import { AdminCard, AdminHeading, StatusPill } from "@/components/admin/ui";
+import { AdminCard, AdminHeading, StatTile, StatusPill } from "@/components/admin/ui";
 import { formatDateTime } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
@@ -10,13 +10,25 @@ export default async function AdminDashboard() {
   const db = getDb();
   const c = (q: string) => db.get<{ c: number }>(sql.raw(`SELECT COUNT(*) AS c FROM ${q}`))?.c ?? 0;
 
-  const stats = [
-    { label: "New bookings", value: c("leads WHERE status = 'new'"), href: "/admin/leads" },
-    { label: "Paid bookings", value: c("leads WHERE stage IN ('paid','booked')"), href: "/admin/leads" },
-    { label: "Booked (scheduled)", value: c("leads WHERE stage = 'booked'"), href: "/admin/leads" },
-    { label: "Newsletter subscribers", value: c("subscribers WHERE status = 'subscribed'"), href: "/admin/newsletter" },
-    { label: "Blog posts", value: c("posts"), href: "/admin/posts" },
-    { label: "Programs", value: c("programs"), href: "/admin/programs" },
+  // Grouped so the six numbers read as two questions — "what is the pipeline
+  // doing?" and "how much is published?" — rather than one undifferentiated row.
+  const statGroups = [
+    {
+      label: "Bookings",
+      stats: [
+        { label: "New bookings", value: c("leads WHERE status = 'new'"), href: "/admin/leads" },
+        { label: "Paid bookings", value: c("leads WHERE stage IN ('paid','booked')"), href: "/admin/leads" },
+        { label: "Booked (scheduled)", value: c("leads WHERE stage = 'booked'"), href: "/admin/leads" },
+      ],
+    },
+    {
+      label: "Audience & content",
+      stats: [
+        { label: "Newsletter subscribers", value: c("subscribers WHERE status = 'subscribed'"), href: "/admin/newsletter" },
+        { label: "Blog posts", value: c("posts"), href: "/admin/posts" },
+        { label: "Programs", value: c("programs"), href: "/admin/programs" },
+      ],
+    },
   ];
 
   const recentAudit = db.select().from(t.auditLog).orderBy(desc(t.auditLog.id)).limit(8).all();
@@ -25,18 +37,28 @@ export default async function AdminDashboard() {
   return (
     <>
       <AdminHeading title="Dashboard" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {stats.map((s) => (
-          <Link key={s.label} href={s.href} className="group">
-            <div className="rounded-2xl border border-line bg-ink-card p-5 transition-colors group-hover:border-accent/50">
-              <p className="font-display text-4xl text-accent">{s.value}</p>
-              <p className="mt-1 text-sm text-muted">{s.label}</p>
+      <div className="space-y-5">
+        {statGroups.map((group) => (
+          <section key={group.label}>
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted/70">
+              {group.label}
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {group.stats.map((s) => (
+                <Link
+                  key={s.label}
+                  href={s.href}
+                  className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+                >
+                  <StatTile label={s.label} value={s.value} />
+                </Link>
+              ))}
             </div>
-          </Link>
+          </section>
         ))}
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-4 sm:gap-6 lg:grid-cols-2">
         <AdminCard title="Latest bookings">
           {recentLeads.length === 0 ? (
             <p className="text-sm text-muted">No bookings yet.</p>

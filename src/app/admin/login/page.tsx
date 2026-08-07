@@ -27,7 +27,9 @@ export default async function AdminLoginPage({
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-2xl border border-line bg-ink-card p-8">
         <BrandLogo logoPath={site.logoPath} brandName={trainer.brand} openInNewTab />
-        <h1 className="mt-4 font-display text-2xl uppercase">Admin</h1>
+        {/* Same scale as AdminHeading's h1 — this is the page heading, it just
+            happens to sit inside the login card. */}
+        <h1 className="mt-4 font-display text-2xl uppercase sm:text-3xl">Admin</h1>
         <p className="mt-1 text-sm text-muted">Sign in to manage the site.</p>
         <LoginForm next={next} />
       </div>

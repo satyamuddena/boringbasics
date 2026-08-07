@@ -1,6 +1,6 @@
 import type { schema } from "@/db";
 import { goalLabels, type Goal } from "@/content/site";
-import { AdminCard, Field, Input, Textarea, Select, Checkbox, SubmitButton } from "@/components/admin/ui";
+import { AdminCard, Field, FieldGroup, Input, Textarea, Select, Checkbox, SubmitButton } from "@/components/admin/ui";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { saveProgramAction } from "./actions";
 
@@ -18,7 +18,7 @@ export function ProgramForm({ program }: { program?: ProgramRow }) {
   const features = json<string[]>(program?.featuresJson, []);
   const goalTags = json<string[]>(program?.goalTagsJson, []);
   return (
-    <form action={saveProgramAction} className="max-w-3xl space-y-6">
+    <form action={saveProgramAction} className="max-w-3xl space-y-4 sm:space-y-6">
       {program && <input type="hidden" name="id" value={program.id} />}
       <AdminCard>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -58,10 +58,8 @@ export function ProgramForm({ program }: { program?: ProgramRow }) {
           <Field label="Features" hint="One per line.">
             <Textarea name="features" rows={5} defaultValue={features.join("\n")} />
           </Field>
-          <div>
-            <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted">
-              Goal tags
-            </span>
+          {/* FieldGroup, not Field: one <label> cannot own five checkboxes. */}
+          <FieldGroup label="Goal tags">
             <div className="flex flex-wrap gap-4">
               {(Object.keys(goalLabels) as Goal[]).map((g) => (
                 <Checkbox
@@ -73,7 +71,7 @@ export function ProgramForm({ program }: { program?: ProgramRow }) {
                 />
               ))}
             </div>
-          </div>
+          </FieldGroup>
           <Checkbox name="popular" label="Mark as most popular" defaultChecked={program?.popular} />
           <ImageUploadField name="image" label="Card image" kind="program" defaultValue={program?.image ?? ""} />
         </div>

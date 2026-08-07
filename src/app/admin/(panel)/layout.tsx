@@ -7,6 +7,7 @@ import { BrandLogo, BrandMark } from "@/components/BrandLogo";
 import { getSite, getTrainer } from "@/lib/content";
 import { AdminSidebar, type NavSection } from "./AdminSidebar";
 import { MOBILE_BAR_CLEARANCE } from "@/lib/adminChrome";
+import { DIAGNOSTICS_ROUTES } from "@/components/admin/DiagnosticsTabs";
 
 export const metadata: Metadata = {
   title: { default: "Admin", template: "%s | Admin" },
@@ -31,9 +32,13 @@ const navSections: NavSection[] = [
     label: "Operations",
     items: [
       { label: "Bookings", href: "/admin/leads", icon: "bookings" },
-      { label: "WhatsApp Test", href: "/admin/whatsapp-test", icon: "whatsapp" },
-      { label: "Razorpay Test", href: "/admin/razorpay-test", icon: "payments" },
-      { label: "Notification Test", href: "/admin/push-test", icon: "bell" },
+      // One entry fronting the three test pages, which share a tab bar.
+      {
+        label: "Diagnostics",
+        href: DIAGNOSTICS_ROUTES[0],
+        icon: "diagnostics",
+        match: DIAGNOSTICS_ROUTES.slice(1),
+      },
       { label: "Data Sync", href: "/admin/sync", icon: "sync" },
     ],
   },
@@ -41,6 +46,7 @@ const navSections: NavSection[] = [
     label: "Administration",
     items: [
       { label: "Settings", href: "/admin/settings", icon: "settings" },
+      { label: "Devices", href: "/admin/devices", icon: "devices" },
       { label: "Audit Log", href: "/admin/audit", icon: "audit" },
     ],
   },
@@ -55,10 +61,14 @@ export default async function AdminPanelLayout({
       <AdminSidebar
         sections={navSections}
         brand={
+          // Sized to fit the 224px rail alongside the collapse button: at the
+          // header's default h-10 the mark alone is ~60px wide, which left the
+          // wordmark too little room and pushed it under the button.
           <BrandLogo
             logoPath={site.logoPath}
             brandName={trainer.brand}
-            wordmarkClassName="text-base tracking-[0.04em]"
+            markClassName="h-8 w-auto shrink-0 rounded-md object-contain"
+            wordmarkClassName="text-sm tracking-[0.02em]"
             openInNewTab
           />
         }

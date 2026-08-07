@@ -12,8 +12,10 @@ export type NavIconName =
   | "whatsapp"
   | "payments"
   | "bell"
+  | "diagnostics"
   | "sync"
   | "settings"
+  | "devices"
   | "audit";
 
 const PATHS: Record<NavIconName, React.ReactNode> = {
@@ -93,6 +95,12 @@ const PATHS: Record<NavIconName, React.ReactNode> = {
       <path d="M13.7 21a2 2 0 0 1-3.4 0" />
     </>
   ),
+  diagnostics: (
+    <>
+      <rect x="2.5" y="4.5" width="19" height="15" rx="2" />
+      <path d="M6 12h2.8l2-3.8 2.4 7 2-3.2H18" />
+    </>
+  ),
   sync: (
     <>
       <path d="M20 12a8 8 0 0 1-13.7 5.6M4 12a8 8 0 0 1 13.7-5.6" />
@@ -103,6 +111,13 @@ const PATHS: Record<NavIconName, React.ReactNode> = {
     <>
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 14.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1 2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7 2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 2.7-1.1 2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7 2 2 0 1 1 0 4 1.6 1.6 0 0 0-1.4 1z" />
+    </>
+  ),
+  devices: (
+    <>
+      <rect x="2.5" y="5" width="13" height="9.5" rx="1.5" />
+      <path d="M2.5 18h13" />
+      <rect x="17.5" y="9" width="4" height="9" rx="1" />
     </>
   ),
   audit: (

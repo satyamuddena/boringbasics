@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
-import { AdminHeading } from "@/components/admin/ui";
+import { AdminAlert, AdminHeading } from "@/components/admin/ui";
 import { PostForm } from "../PostForm";
 
 export const dynamic = "force-dynamic";
@@ -21,14 +21,14 @@ export default async function EditPostPage({
     <>
       <AdminHeading title={`Edit: ${post.title}`} />
       {saved && (
-        <p className="mb-4 rounded-lg border border-ok/40 bg-ok/10 px-4 py-2 text-sm text-ok">
+        <AdminAlert tone="ok">
           Saved.{" "}
           {post.isPublished && (
             <Link href={`/blog/${post.slug}`} target="_blank" className="underline">
               View on site →
             </Link>
           )}
-        </p>
+        </AdminAlert>
       )}
       <PostForm post={post} />
     </>

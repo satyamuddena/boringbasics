@@ -28,17 +28,34 @@ export interface AdminPushNotification {
    * glance at the lock screen could not tell a reminder from a new booking —
    * which is the whole reason a reminder is useful. `icon` is the large image;
    * `badge` is the monochrome silhouette Android puts in the status bar.
+   *
+   * Android only. WebKit ignores both and stamps every web-push notification
+   * with the Home Screen icon, which is why the title carries an emoji as well
+   * — see KIND below.
    */
   icon: string;
   badge: string;
 }
 
-const ART: Record<PushKind | "test", { icon: string; badge: string }> = {
-  booking: { icon: "/icons/push-booking.png", badge: "/icons/badge-booking.png" },
-  payment: { icon: "/icons/push-payment.png", badge: "/icons/badge-payment.png" },
-  reminder: { icon: "/icons/push-reminder.png", badge: "/icons/badge-reminder.png" },
-  test: { icon: "/icons/icon-192.png", badge: "/icons/badge-booking.png" },
+/**
+ * One row per kind: the artwork Android draws, and the emoji that opens the
+ * title.
+ *
+ * The emoji is not decoration. An iPhone shows the same Home Screen icon on
+ * every notification this app sends, so on the phone the admin panel is
+ * actually installed on, artwork alone distinguishes nothing — the first
+ * glyph of the title is the only per-kind marker that survives. Emoji match
+ * their artwork so the two platforms read the same: calendar, clock, banknote.
+ */
+const KIND: Record<PushKind | "test", { icon: string; badge: string; emoji: string }> = {
+  booking: { icon: "/icons/push-booking.png", badge: "/icons/badge-booking.png", emoji: "📅" },
+  payment: { icon: "/icons/push-payment.png", badge: "/icons/badge-payment.png", emoji: "💵" },
+  reminder: { icon: "/icons/push-reminder.png", badge: "/icons/badge-reminder.png", emoji: "⏰" },
+  test: { icon: "/icons/icon-192.png", badge: "/icons/badge-booking.png", emoji: "🔔" },
 };
+
+/** Artwork fields only — `emoji` goes in the title, never in the payload. */
+const art = ({ icon, badge }: (typeof KIND)[PushKind | "test"]) => ({ icon, badge });
 
 /** Everything a caller might have. Only `id`, `name` and `scheduledAt` are read. */
 export interface PushBookingInput {
@@ -95,35 +112,35 @@ export function bookingConfirmedNotification(booking: PushBookingInput): AdminPu
   const who = firstName(booking.name);
   const when = booking.scheduledAt ? bookingDateAndTime(booking.scheduledAt) : null;
   return {
-    title: "New booking",
+    title: `${KIND.booking.emoji} New booking`,
     body: when ? `${who} · ${when.date}, ${when.time}` : `${who} · time to be confirmed`,
     url: bookingUrl(booking.id, "all"),
     tag: `booking-${booking.id}`,
-    ...ART.booking,
+    ...art(KIND.booking),
   };
 }
 
 /** Fires when Razorpay payment verifies, before a slot is picked. */
 export function paymentReceivedNotification(booking: PushBookingInput): AdminPushNotification {
   return {
-    title: "Payment received",
+    title: `${KIND.payment.emoji} Payment received`,
     // Deliberately no amount: it is the sort of thing that reads badly over a
     // shoulder, and the trainer is opening the booking anyway.
     body: `${firstName(booking.name)} · no slot picked yet`,
     url: bookingUrl(booking.id, "notime"),
     tag: `booking-${booking.id}`,
-    ...ART.payment,
+    ...art(KIND.payment),
   };
 }
 
 /** The "Send test" button on the notifications toggle. */
 export function testNotification(): AdminPushNotification {
   return {
-    title: "Notifications are on",
+    title: `${KIND.test.emoji} Notifications are on`,
     body: "This is what a new booking will look like.",
     url: "/admin/leads",
     tag: "test",
-    ...ART.test,
+    ...art(KIND.test),
   };
 }
 
@@ -142,10 +159,10 @@ export function callReminderNotification(
   const who = firstName(booking.name);
   const when = booking.scheduledAt ? bookingDateAndTime(booking.scheduledAt) : null;
   return {
-    title: `Call in ${minutes} minutes`,
+    title: `${KIND.reminder.emoji} Call in ${minutes} minutes`,
     body: when ? `${who} · ${when.time}` : who,
     url: bookingUrl(booking.id, "upcoming"),
     tag: `reminder-${booking.id}`,
-    ...ART.reminder,
+    ...art(KIND.reminder),
   };
 }

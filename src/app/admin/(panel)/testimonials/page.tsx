@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
-import { AdminCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, Textarea, Checkbox, SubmitButton } from "@/components/admin/ui";
+import { AdminDisclosureCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, Textarea, Checkbox, SubmitButton } from "@/components/admin/ui";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { DeleteForm } from "@/components/admin/DeleteForm";
 import { saveTestimonialAction, deleteTestimonialAction } from "./actions";
@@ -43,7 +43,10 @@ export default async function TestimonialsAdminPage({
         action={edit ? { href: "/admin/testimonials", label: "+ New" } : undefined}
       />
 
-      <AdminCard title={editing ? `Edit: ${editing.clientName}` : "Add testimonial"}>
+      <AdminDisclosureCard
+        title={editing ? `Edit: ${editing.clientName}` : "Add testimonial"}
+        open={Boolean(edit)}
+      >
         <form action={saveTestimonialAction} className="space-y-4">
           {editing && <input type="hidden" name="id" value={editing.id} />}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -77,9 +80,9 @@ export default async function TestimonialsAdminPage({
           <Checkbox name="featured" label="Featured on homepage" defaultChecked={editing?.featured ?? false} />
           <SubmitButton>{editing ? "Save changes" : "Add testimonial"}</SubmitButton>
         </form>
-      </AdminCard>
+      </AdminDisclosureCard>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <AdminListControls resetHref="/admin/testimonials">
           <Field label="Search">
             <Input name="q" defaultValue={q} placeholder="Client, result, quote…" />
@@ -100,7 +103,14 @@ export default async function TestimonialsAdminPage({
             </Select>
           </Field>
         </AdminListControls>
-        <AdminTable headers={["Client", "Quote", "Rating", "Featured", ""]}>
+        <AdminTable
+          headers={["Client", "Quote", "Rating", "Featured", ""]}
+          empty={
+            allRows.length === 0
+              ? "No testimonials yet — add the first one above."
+              : "No testimonials match these filters."
+          }
+        >
           {rows.map((r) => (
             <tr key={r.id}>
               <td className="px-4 py-3">

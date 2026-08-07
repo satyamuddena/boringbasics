@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
-import { AdminCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, SubmitButton } from "@/components/admin/ui";
+import { AdminDisclosureCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, SubmitButton } from "@/components/admin/ui";
 import { DeleteForm } from "@/components/admin/DeleteForm";
 import { SocialFields } from "@/components/admin/SocialFields";
 import { SocialIcon } from "@/components/SocialIcon";
@@ -41,7 +41,10 @@ export default async function SocialsAdminPage({
     <>
       <AdminHeading title="Social Links" action={edit ? { href: "/admin/socials", label: "+ New" } : undefined} />
 
-      <AdminCard title={editing ? `Edit: ${editing.platform}` : "Add social link"}>
+      <AdminDisclosureCard
+        title={editing ? `Edit: ${editing.platform}` : "Add social link"}
+        open={Boolean(edit)}
+      >
         <form action={saveSocialAction} className="space-y-4">
           {editing && <input type="hidden" name="id" value={editing.id} />}
           <SocialFields
@@ -60,9 +63,9 @@ export default async function SocialsAdminPage({
           </div>
           <SubmitButton>{editing ? "Save changes" : "Add link"}</SubmitButton>
         </form>
-      </AdminCard>
+      </AdminDisclosureCard>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <AdminListControls resetHref="/admin/socials">
           <Field label="Search">
             <Input name="q" defaultValue={q} placeholder="Platform, handle, URL…" />
@@ -86,7 +89,14 @@ export default async function SocialsAdminPage({
             </Select>
           </Field>
         </AdminListControls>
-        <AdminTable headers={["Platform", "Handle", "URL", ""]}>
+        <AdminTable
+          headers={["Platform", "Handle", "URL", ""]}
+          empty={
+            allRows.length === 0
+              ? "No social links yet — add the first one above."
+              : "No social links match these filters."
+          }
+        >
           {rows.map((r) => (
             <tr key={r.id}>
               <td className="px-4 py-3">

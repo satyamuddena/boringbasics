@@ -1,5 +1,6 @@
 "use client";
 
+import { btnGhost } from "@/components/admin/ui";
 import { markContactedAction } from "./actions";
 
 /**
@@ -35,7 +36,7 @@ export function LeadWhatsAppButton({
       className={
         highlight
           ? "rounded-lg border border-accent px-2 py-1 text-xs text-accent transition-colors hover:bg-accent hover:text-ink"
-          : "rounded-lg border border-line px-2 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-accent"
+          : `${btnGhost} px-2 py-1 text-xs`
       }
     >
       {label}

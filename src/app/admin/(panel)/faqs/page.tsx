@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
-import { AdminCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, Textarea, SubmitButton } from "@/components/admin/ui";
+import { AdminDisclosureCard, AdminHeading, AdminListControls, AdminTable, Field, Input, Select, Textarea, SubmitButton } from "@/components/admin/ui";
 import { DeleteForm } from "@/components/admin/DeleteForm";
 import { saveFaqAction, deleteFaqAction } from "./actions";
 
@@ -36,7 +36,7 @@ export default async function FaqsAdminPage({
     <>
       <AdminHeading title="FAQs" action={edit ? { href: "/admin/faqs", label: "+ New" } : undefined} />
 
-      <AdminCard title={editing ? "Edit FAQ" : "Add FAQ"}>
+      <AdminDisclosureCard title={editing ? "Edit FAQ" : "Add FAQ"} open={Boolean(edit)}>
         <form action={saveFaqAction} className="space-y-4">
           {editing && <input type="hidden" name="id" value={editing.id} />}
           <Field label="Question">
@@ -60,9 +60,9 @@ export default async function FaqsAdminPage({
           </div>
           <SubmitButton>{editing ? "Save changes" : "Add FAQ"}</SubmitButton>
         </form>
-      </AdminCard>
+      </AdminDisclosureCard>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <AdminListControls resetHref="/admin/faqs">
           <Field label="Search">
             <Input name="q" defaultValue={q} placeholder="Question, answer…" />
@@ -85,7 +85,14 @@ export default async function FaqsAdminPage({
             </Select>
           </Field>
         </AdminListControls>
-        <AdminTable headers={["Question", "Category", "Order", ""]}>
+        <AdminTable
+          headers={["Question", "Category", "Order", ""]}
+          empty={
+            allRows.length === 0
+              ? "No FAQs yet — add the first one above."
+              : "No FAQs match these filters."
+          }
+        >
           {rows.map((r) => (
             <tr key={r.id}>
               <td className="max-w-lg px-4 py-3">

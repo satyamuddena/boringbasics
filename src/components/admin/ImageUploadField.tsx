@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { IMAGE_SPECS, DEFAULT_KIND, type ImageKind } from "@/lib/image-specs";
+import { fieldLabelClass } from "./ui";
 
 /**
  * Image picker for admin forms: uploads to /api/admin/upload (which resizes to
@@ -45,9 +46,9 @@ export function ImageUploadField({
 
   return (
     <div>
-      <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted">
-        {label}
-      </span>
+      <span className={fieldLabelClass}>{label}</span>
+      {/* Hint sits above the control here, not below as in `Field` — it says
+          what to upload, which is only useful before you pick a file. */}
       <span className="mb-2 block text-xs text-muted/70">
         {IMAGE_SPECS[kind].label} — larger images are resized automatically.
       </span>

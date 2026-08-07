@@ -61,6 +61,12 @@ export default async function AuditAdminPage({
     return `/admin/audit${qs ? `?${qs}` : ""}`;
   };
 
+  // One chip style for all three states, so "All" hovers like every other chip.
+  const chip = (on: boolean) =>
+    `rounded-full border px-3 py-1 transition-colors ${
+      on ? "border-accent text-accent" : "border-line text-muted hover:border-accent/60 hover:text-fg"
+    }`;
+
   return (
     <>
       <AdminHeading title="Audit Log" />
@@ -77,17 +83,14 @@ export default async function AuditAdminPage({
       </AdminListControls>
 
       <div className="mb-4 flex flex-wrap gap-2 text-xs">
-        <Link
-          href="/admin/audit"
-          className={`rounded-full border px-3 py-1 ${!entity && !action ? "border-accent text-accent" : "border-line text-muted"}`}
-        >
+        <Link href="/admin/audit" className={chip(!entity && !action)}>
           All
         </Link>
         {entityTypes.map((e) => (
           <Link
             key={e}
             href={filterLink({ entity: e === entity ? undefined : e })}
-            className={`rounded-full border px-3 py-1 ${entity === e ? "border-accent text-accent" : "border-line text-muted hover:text-fg"}`}
+            className={chip(entity === e)}
           >
             {e}
           </Link>
@@ -97,14 +100,14 @@ export default async function AuditAdminPage({
           <Link
             key={a}
             href={filterLink({ action: a === action ? undefined : a })}
-            className={`rounded-full border px-3 py-1 ${action === a ? "border-accent text-accent" : "border-line text-muted hover:text-fg"}`}
+            className={chip(action === a)}
           >
             {a.replace(/_/g, " ")}
           </Link>
         ))}
       </div>
 
-      <AdminTable headers={["When", "Actor", "Action", "Entity", "Change"]}>
+      <AdminTable headers={["When", "Actor", "Action", "Entity", "Change"]} empty="No entries.">
         {visible.map((a) => (
           <tr key={a.id} className="align-top">
             <td className="whitespace-nowrap px-4 py-3 text-xs text-muted">
@@ -138,13 +141,6 @@ export default async function AuditAdminPage({
             </td>
           </tr>
         ))}
-        {visible.length === 0 && (
-          <tr>
-            <td colSpan={5} className="px-4 py-8 text-center text-muted">
-              No entries.
-            </td>
-          </tr>
-        )}
       </AdminTable>
 
       <div className="mt-4 flex gap-3 text-sm">

@@ -17,7 +17,7 @@ const json = <T,>(s: string | undefined, fb: T): T => {
 export function PostForm({ post }: { post?: PostRow }) {
   const tags = json<string[]>(post?.tagsJson, []);
   return (
-    <form action={savePostAction} className="max-w-3xl space-y-6">
+    <form action={savePostAction} className="max-w-3xl space-y-4 sm:space-y-6">
       {post && <input type="hidden" name="id" value={post.id} />}
       <AdminCard>
         <div className="grid gap-4 sm:grid-cols-2">

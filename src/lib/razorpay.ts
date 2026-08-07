@@ -78,3 +78,17 @@ export function verifyPaymentSignature(opts: {
     .digest("hex");
   return safeEqualHex(expected, opts.signature);
 }
+
+/**
+ * Which Razorpay variables are present. Booleans only — the secret also signs
+ * webhook payloads, so it must never be rendered.
+ */
+export function razorpayDiagnostics(): {
+  keyIdSet: boolean;
+  keySecretSet: boolean;
+  ready: boolean;
+} {
+  const keyIdSet = Boolean(process.env.RAZORPAY_KEY_ID?.trim());
+  const keySecretSet = Boolean(process.env.RAZORPAY_KEY_SECRET?.trim());
+  return { keyIdSet, keySecretSet, ready: keyIdSet && keySecretSet };
+}

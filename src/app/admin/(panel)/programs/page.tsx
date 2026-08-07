@@ -55,7 +55,14 @@ export default async function ProgramsAdminPage({
           </Select>
         </Field>
       </AdminListControls>
-      <AdminTable headers={["Title", "Duration", "Price (₹)", "Popular", "Order", ""]}>
+      <AdminTable
+        headers={["Title", "Duration", "Price (₹)", "Popular", "Order", ""]}
+        empty={
+          allPrograms.length === 0
+            ? "No programs yet — create your first one."
+            : "No programs match these filters."
+        }
+      >
         {programs.map((p) => (
           <tr key={p.id}>
             <td className="px-4 py-3">

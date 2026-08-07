@@ -5,6 +5,8 @@ type BrandLogoProps = {
   compact?: boolean;
   className?: string;
   wordmarkClassName?: string;
+  /** Overrides the mark's size — the admin rail has far less room than a header. */
+  markClassName?: string;
   tagline?: string;
   openInNewTab?: boolean;
 };
@@ -36,6 +38,7 @@ export function BrandLogo({
   logoPath = "/brand/boring-basics-mark-client.png",
   brandName = "Boring Basics",
   wordmarkClassName = "text-xl tracking-[0.08em]",
+  markClassName,
   tagline,
   openInNewTab = false,
 }: BrandLogoProps & { logoPath?: string; brandName?: string }) {
@@ -57,7 +60,10 @@ export function BrandLogo({
       <BrandMark
         src={logoPath}
         brandName={brandName}
-        className={`${tagline ? "h-9 sm:h-10" : "h-10"} w-auto shrink-0 rounded-md object-contain`}
+        className={
+          markClassName ??
+          `${tagline ? "h-9 sm:h-10" : "h-10"} w-auto shrink-0 rounded-md object-contain`
+        }
       />
       {!compact && (
         <span className={tagline ? "border-l border-accent pl-2.5 sm:pl-3" : undefined}>
