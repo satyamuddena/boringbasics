@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db";
 import { str, bool } from "./forms";
-import { istInputToIso, type PromoKind } from "./promoBannerCore";
+import { istInputToIso, toPromoEffect, type PromoKind } from "./promoBannerCore";
 
 export type PromoRow = typeof t.promoBanner.$inferSelect;
 
@@ -46,6 +46,7 @@ export function upsertPromoBanner(kind: PromoKind, refId: number, formData: Form
     ctaHref: str(formData, "ctaHref") || null,
     startsAt: istInputToIso(str(formData, "startsAt")),
     endsAt: istInputToIso(str(formData, "endsAt")),
+    effect: toPromoEffect(str(formData, "effect")),
     isEnabled: true,
     updatedAt: now,
   };

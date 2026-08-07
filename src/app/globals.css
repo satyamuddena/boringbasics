@@ -199,7 +199,7 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Promotion strip offset                                             */
+/*  Promotion strip                                                    */
 /*                                                                     */
 /*  The strip is fixed under the 64px header, so page content is padded */
 /*  down to clear it. `.promo-on` is toggled by PromoChrome (client) so */
@@ -207,17 +207,92 @@ body {
 /*                                                                     */
 /*  The hero is the exception: it is full-bleed and is meant to run     */
 /*  *under* the chrome, so it cancels the offset and pads its own copy  */
-/*  instead (64px header + 44px strip).                                */
+/*  by the full chrome height instead.                                 */
+/*                                                                     */
+/*  Height lives in one variable: the strip, the offset and the hero's  */
+/*  cancellation all read it, so resizing the strip cannot leave a gap  */
+/*  or an overlap behind.                                               */
 /* ------------------------------------------------------------------ */
+:root {
+  --promo-h: 2.25rem; /* strip height */
+  --header-h: 4rem; /* the fixed header above it */
+}
+.promo-strip {
+  height: var(--promo-h);
+}
 .promo-on {
-  padding-top: 2.75rem;
+  padding-top: var(--promo-h);
 }
 .promo-on > .hero-bleed:first-child {
-  margin-top: -2.75rem;
-  padding-top: 6.75rem;
+  margin-top: calc(var(--promo-h) * -1);
+  padding-top: calc(var(--header-h) + var(--promo-h));
 }
 /*
   No .hero-inner override here on purpose: the hero's own top padding is already
   small enough to read the same with or without the strip, so the two states
   cannot drift apart as the hero is restyled.
 */
+
+/* Attention effects, chosen per promotion in the admin. */
+.promo-marquee {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.promo-marquee-track {
+  display: flex;
+  flex: none;
+  /*
+    Never narrower than the strip. The two tracks tile the visible window only
+    while each is at least as wide as it, so a two-word promo cannot scroll off
+    and leave the strip momentarily blank.
+  */
+  min-width: 100%;
+  gap: 3rem;
+  padding-right: 3rem; /* keeps the seam spaced like the copies within a track */
+  animation: promo-scroll 18s linear infinite;
+}
+.promo-marquee-track > span {
+  white-space: nowrap;
+}
+@keyframes promo-scroll {
+  to {
+    /* A full track width, so the trailing track lands exactly where this began. */
+    transform: translateX(-100%);
+  }
+}
+
+.promo-flash {
+  animation: promo-flash 1.4s ease-in-out infinite;
+}
+@keyframes promo-flash {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/*
+  Both effects stop for anyone who asked their device to reduce motion — a
+  looping marquee is a vestibular trigger, and a flashing element is a seizure
+  risk. The marquee also has to stop overflowing once it is no longer moving.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .promo-marquee-track,
+  .promo-flash {
+    animation: none;
+  }
+  /* Standing still, the repeats would just read as duplicated text. */
+  .promo-marquee-track:not(:first-child),
+  .promo-marquee-track > span:not(:first-child) {
+    display: none;
+  }
+  .promo-marquee-track {
+    min-width: 0;
+    padding-right: 0;
+  }
+  .promo-marquee-track > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

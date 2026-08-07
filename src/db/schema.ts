@@ -122,6 +122,12 @@ export const promoBanner = sqliteTable(
     endsAt: text("ends_at"),
     /** Manual override — turning this off hides the promo whatever the dates say. */
     isEnabled: integer("is_enabled", { mode: "boolean" }).notNull().default(false),
+    /**
+     * How the strip draws attention: none|scroll|flash. Per-promo rather than a
+     * site setting, so a loud festive offer and a quiet evergreen one can run
+     * side by side. All three are neutralised under prefers-reduced-motion.
+     */
+    effect: text("effect").notNull().default("none"),
     displayOrder: integer("display_order").notNull().default(0),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),

@@ -7,6 +7,8 @@ import {
   isPromoActive,
   isPromoKind,
   promoStatus,
+  toPromoEffect,
+  type PromoEffect,
   type PromoKind,
   type PromoStatus,
 } from "./promoBannerCore";
@@ -292,6 +294,7 @@ export interface ActivePromo {
   ctaLabel: string | null;
   href: string;
   endsAt: string | null;
+  effect: PromoEffect;
 }
 
 /**
@@ -329,6 +332,7 @@ export const getActivePromotions = cache(async (): Promise<ActivePromo[]> =>
         ctaLabel: r.ctaLabel,
         href: r.ctaHref || defaultPromoHref(isPromoKind(r.kind) ? r.kind : "post", slug),
         endsAt: r.endsAt,
+        effect: toPromoEffect(r.effect),
       };
     });
   }, []),

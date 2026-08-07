@@ -51,12 +51,42 @@ export function PromoChrome({
           role="region"
           aria-label="Promotion"
         >
-          <div className="mx-auto flex h-11 max-w-6xl items-center gap-3 px-4 sm:px-6">
+          {/* Height comes from --promo-h in globals.css, which also drives the
+              page offset — see the .promo-on rules there. */}
+          <div className="promo-strip mx-auto flex max-w-6xl items-center gap-3 px-4 sm:px-6">
             <Link
               href={promo.href}
-              className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+              // 13px rather than text-sm: the family and weight match the
+              // header's CTA, but 14px reads heavy in a 36px strip.
+              className="flex min-w-0 flex-1 items-center gap-2 text-[13px] font-semibold tracking-[0.01em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
             >
-              <span className="truncate">{promo.bannerText}</span>
+              {promo.effect === "scroll" ? (
+                /*
+                  Two identical tracks side by side, each sliding a full track
+                  width: as the first leaves, the second is exactly where it
+                  began, so the loop is seamless.
+
+                  Each track repeats the text so it is at least as wide as the
+                  strip — with a single copy, short text on a desktop bar leaves
+                  most of the strip empty and the promo reads as a glitch.
+                  Only the first copy is announced; the rest are decorative.
+                */
+                <span className="promo-marquee">
+                  {[0, 1].map((track) => (
+                    <span key={track} className="promo-marquee-track" aria-hidden={track === 1}>
+                      {[0, 1, 2].map((copy) => (
+                        <span key={copy} aria-hidden={track === 0 && copy > 0 ? true : undefined}>
+                          {promo.bannerText}
+                        </span>
+                      ))}
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                <span className={`truncate ${promo.effect === "flash" ? "promo-flash" : ""}`}>
+                  {promo.bannerText}
+                </span>
+              )}
               <span aria-hidden className="shrink-0">
                 →
               </span>

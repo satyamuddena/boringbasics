@@ -5,6 +5,20 @@
 
 export type PromoKind = "post" | "program" | "testimonial";
 
+/** How the strip draws attention. Neutralised under prefers-reduced-motion. */
+export type PromoEffect = "none" | "scroll" | "flash";
+
+export const PROMO_EFFECTS: { value: PromoEffect; label: string }[] = [
+  { value: "none", label: "None — plain text" },
+  { value: "scroll", label: "Scrolling — text moves right to left" },
+  { value: "flash", label: "Flashing — text pulses" },
+];
+
+/** Falls back to "none" so an unknown value can never animate unexpectedly. */
+export function toPromoEffect(value: string | null | undefined): PromoEffect {
+  return value === "scroll" || value === "flash" ? value : "none";
+}
+
 export const PROMO_KINDS: PromoKind[] = ["post", "program", "testimonial"];
 
 export function isPromoKind(value: string): value is PromoKind {

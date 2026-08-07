@@ -1,5 +1,5 @@
-import { Field, Input, Checkbox, fieldHintClass } from "./ui";
-import { isoToIstInput } from "@/lib/promoBannerCore";
+import { Field, Input, Select, Checkbox, fieldHintClass } from "./ui";
+import { isoToIstInput, PROMO_EFFECTS } from "@/lib/promoBannerCore";
 import type { PromoRow } from "@/lib/promoBanner";
 
 /**
@@ -66,6 +66,19 @@ export function PromoteFields({
             placeholder="Festive Offer — 20% off all packages, ends Aug 31"
             maxLength={120}
           />
+        </Field>
+
+        <Field
+          label="Attention effect"
+          hint="Visitors who ask their device to reduce motion always see plain text."
+        >
+          <Select name="effect" defaultValue={promo?.effect ?? "none"}>
+            {PROMO_EFFECTS.map((e) => (
+              <option key={e.value} value={e.value}>
+                {e.label}
+              </option>
+            ))}
+          </Select>
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">

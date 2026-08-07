@@ -7,6 +7,8 @@ import {
   isoToIstInput,
   defaultPromoHref,
   isPromoKind,
+  toPromoEffect,
+  PROMO_EFFECTS,
 } from "../src/lib/promoBannerCore";
 
 const NOW = new Date("2026-08-15T12:00:00.000Z");
@@ -79,4 +81,25 @@ test("a blank CTA link falls back to the promoted item's own page", () => {
 test("only the three known kinds are accepted", () => {
   assert.equal(isPromoKind("program"), true);
   assert.equal(isPromoKind("lead"), false);
+});
+
+test("the two animated effects are recognised", () => {
+  assert.equal(toPromoEffect("scroll"), "scroll");
+  assert.equal(toPromoEffect("flash"), "flash");
+  assert.equal(toPromoEffect("none"), "none");
+});
+
+test("anything unrecognised falls back to a still banner", () => {
+  // Nothing should be able to start an animation by accident — a stray value
+  // from an old import or a hand-edited row must render as plain text.
+  for (const bad of ["blink", "SCROLL", "", null, undefined, "marquee"]) {
+    assert.equal(toPromoEffect(bad), "none");
+  }
+});
+
+test("every offered effect survives its own parser", () => {
+  // Guards against a dropdown option that silently renders as "none".
+  for (const { value } of PROMO_EFFECTS) {
+    assert.equal(toPromoEffect(value), value);
+  }
 });
