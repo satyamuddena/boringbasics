@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getAdmin } from "@/lib/auth";
+import { getAdmin, requestMeta } from "@/lib/auth";
 import { safeNextPath } from "@/lib/nextPath";
+import { isMobileUserAgent } from "@/lib/deviceLabel";
 import { LoginForm } from "./LoginForm";
 import { BrandLogo } from "@/components/BrandLogo";
 import { getSite, getTrainer } from "@/lib/content";
@@ -21,7 +22,12 @@ export default async function AdminLoginPage({
   // Validated here as well as in the action: this value reaches a hidden field,
   // and an unchecked one would be an open redirect waiting for a crafted link.
   const next = safeNextPath((await searchParams).next);
-  if (await getAdmin()) redirect(next ?? "/admin");
+  if (await getAdmin()) {
+    // Same phone-lands-on-Bookings default as the login action, for anyone
+    // who reaches this page while already signed in (e.g. the back button).
+    const { userAgent } = await requestMeta();
+    redirect(next ?? (isMobileUserAgent(userAgent) ? "/admin/leads" : "/admin"));
+  }
   const [site, trainer] = await Promise.all([getSite(), getTrainer()]);
   return (
     <div className="flex min-h-screen items-center justify-center px-4">

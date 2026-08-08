@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deviceLabel } from "../src/lib/deviceLabel";
+import { deviceLabel, isMobileUserAgent } from "../src/lib/deviceLabel";
 
 const UA = {
   iphoneSafari:
@@ -49,4 +49,25 @@ test("a missing user agent does not render an empty row", () => {
 test("an unrecognised agent still says something", () => {
   assert.equal(deviceLabel("curl/8.4.0"), "Unknown device");
   assert.equal(deviceLabel("SomeBot (Linux)"), "Linux");
+});
+
+test("iPhone and Android phones count as mobile", () => {
+  assert.equal(isMobileUserAgent(UA.iphoneSafari), true);
+  assert.equal(isMobileUserAgent(UA.androidChrome), true);
+});
+
+test("iPad and desktops do not count as mobile", () => {
+  // iPadOS's UA has no "Mobile" token unless Safari is in "Request Mobile
+  // Website" mode — the default desktop-class UA is what this checks.
+  assert.equal(isMobileUserAgent(UA.ipadSafari), false);
+  assert.equal(isMobileUserAgent(UA.macSafari), false);
+  assert.equal(isMobileUserAgent(UA.windowsChrome), false);
+  assert.equal(isMobileUserAgent(UA.windowsEdge), false);
+  assert.equal(isMobileUserAgent(UA.firefox), false);
+});
+
+test("a missing user agent is not mobile", () => {
+  assert.equal(isMobileUserAgent(null), false);
+  assert.equal(isMobileUserAgent(undefined), false);
+  assert.equal(isMobileUserAgent(""), false);
 });

@@ -45,3 +45,15 @@ export function deviceLabel(userAgent: string | null | undefined): string {
   if (platform && browser) return `${platform} · ${browser}`;
   return platform ?? browser ?? "Unknown device";
 }
+
+/**
+ * Coarse phone check — iPhone, or Android with the "Mobile" token (a tablet's
+ * Android UA omits it). Used only to pick which page a login lands on, so a
+ * false positive/negative just picks the other equally-valid page — same
+ * "deliberately coarse" spirit as `deviceLabel` above, not a security check.
+ */
+export function isMobileUserAgent(userAgent: string | null | undefined): boolean {
+  const ua = userAgent?.trim();
+  if (!ua) return false;
+  return /iPhone/i.test(ua) || (/Android/i.test(ua) && /Mobile/i.test(ua));
+}

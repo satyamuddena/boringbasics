@@ -9,6 +9,7 @@ import { safeNextPath } from "@/lib/nextPath";
 import { audit } from "@/lib/audit";
 import { getDb, schema as t } from "@/db";
 import { str } from "@/lib/forms";
+import { isMobileUserAgent } from "@/lib/deviceLabel";
 
 const MAX_ATTEMPTS_PER_15MIN = 10;
 
@@ -52,5 +53,10 @@ export async function loginAction(_prev: { error?: string } | null, formData: Fo
     // cookies cannot be re-issued from a server component render. See auth.ts.
     maxAge: SESSION_COOKIE_MAX_AGE_SEC,
   });
-  redirect(safeNextPath(formData.get("next")) ?? "/admin");
+  // A phone lands on Bookings — the page a trainer actually checks between
+  // clients — everyone else keeps landing on the Dashboard. An explicit
+  // `next` (e.g. a deep link that bounced through login) always wins over
+  // this default.
+  const landing = isMobileUserAgent(meta.userAgent) ? "/admin/leads" : "/admin";
+  redirect(safeNextPath(formData.get("next")) ?? landing);
 }
