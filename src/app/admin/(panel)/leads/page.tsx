@@ -308,18 +308,46 @@ export default async function LeadsAdminPage({
             notify={notify}
             now={now}
           >
-            <BookingDetails booking={l} notify={notify} />
-            <LeadWhatsAppButton
-              leadId={l.id}
-              href={whatsappHref(l.whatsapp, whatsappText)}
-              highlight={progress.needsFollowup}
-            />
-            {l.status !== "closed" && (
-              <form action={setLeadStatusAction.bind(null, l.id, "closed")}>
-                <button className={`${btnGhost} px-2 py-1 text-xs`}>
-                  Close
-                </button>
-              </form>
+            {/* The whole card opens this — see the `stretched` comment on
+                BookingDetails for how it stays clickable under the buttons
+                below it rather than swallowing their taps. */}
+            <BookingDetails booking={l} notify={notify} stretched />
+            {progress.needsFollowup ? (
+              // The one card that most needs a reply gets the loudest,
+              // easiest-to-hit action: full width, on its own row.
+              <div className="relative z-[2] flex w-full flex-col gap-2">
+                <LeadWhatsAppButton
+                  leadId={l.id}
+                  href={whatsappHref(l.whatsapp, whatsappText)}
+                  size="full"
+                />
+                {l.status !== "closed" && (
+                  <form action={setLeadStatusAction.bind(null, l.id, "closed")}>
+                    <button
+                      className={`${btnGhost} flex h-11 w-full items-center justify-center px-3 text-sm font-semibold`}
+                    >
+                      Close booking
+                    </button>
+                  </form>
+                )}
+              </div>
+            ) : (
+              <div className="relative z-[2] flex w-full gap-2">
+                <LeadWhatsAppButton
+                  leadId={l.id}
+                  href={whatsappHref(l.whatsapp, whatsappText)}
+                  size="compact"
+                />
+                {l.status !== "closed" && (
+                  <form action={setLeadStatusAction.bind(null, l.id, "closed")} className="flex-1">
+                    <button
+                      className={`${btnGhost} flex h-11 w-full items-center justify-center px-3 text-sm font-semibold`}
+                    >
+                      Close
+                    </button>
+                  </form>
+                )}
+              </div>
             )}
           </BookingCard>
         ))}

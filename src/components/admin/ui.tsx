@@ -24,7 +24,7 @@ import { MOBILE_BAR_OFFSET, SECTION_ANCHOR_OFFSET } from "@/lib/adminChrome";
  */
 
 /** Focus ring for controls that sit on the page background. */
-const focusRing =
+export const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink";
 
 export const btnPrimary =
@@ -494,7 +494,19 @@ export function AdminTabs({
       rule while transparent ones let it through.
     */
     <div className="border-b border-line">
-      <div className="-mb-px flex gap-0.5 overflow-x-auto px-1">
+      {/*
+        The row scrolls (overflow-x-auto) whenever there are more tabs than fit
+        a phone's width, but a plain overflow gives no visual sign of that — it
+        just stops at the viewport edge and reads as the list ending rather
+        than continuing. The mask fades the last ~28px to transparent instead
+        of painting a solid-color gradient on top, so it stays correct
+        regardless of what surface (card/soft) sits behind this bar. Snap
+        keeps a swipe from stopping mid-label; `motion-safe:` skips it for
+        anyone who has asked to reduce motion.
+      */}
+      <div
+        className="-mb-px flex gap-0.5 overflow-x-auto px-1 motion-safe:[scroll-snap-type:x_proximity] [mask-image:linear-gradient(to_right,black_0,black_calc(100%-28px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_0,black_calc(100%-28px),transparent_100%)]"
+      >
         {tabs.map((tab) => {
           const on = tab.key === active;
           return (
@@ -502,7 +514,7 @@ export function AdminTabs({
               key={tab.key}
               href={tab.href}
               aria-current={on ? "page" : undefined}
-              className={`flex-none whitespace-nowrap rounded-t-xl border px-4 py-2.5 text-sm transition-colors ${
+              className={`flex-none whitespace-nowrap rounded-t-xl border px-4 py-2.5 text-sm transition-colors motion-safe:[scroll-snap-align:start] ${
                 on ? `${blend} font-semibold text-fg` : "border-transparent text-muted hover:text-fg"
               }`}
             >

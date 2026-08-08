@@ -47,19 +47,29 @@ export function BookingCard({
   children: React.ReactNode;
 }) {
   return (
+    // `relative` makes this the containing block for BookingDetails' stretched
+    // trigger below — the whole card opens the detail sheet, not just a small
+    // "View" chip. Anything that must stay independently tappable (the wa.me
+    // link, the action row) gets its own `relative z-[2]` to sit above it; see
+    // the comment on that trigger for how the stacking is kept predictable.
     <li
-      className={`border-b border-line p-4 last:border-b-0 ${
+      className={`relative border-b border-line p-4 transition-colors last:border-b-0 active:bg-ink-soft/60 ${
         progress.needsFollowup ? "bg-warn/5" : ""
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-semibold">{lead.name}</p>
+          <div className="flex min-w-0 items-center gap-1">
+            <p className="truncate font-semibold">{lead.name}</p>
+            <span aria-hidden className="shrink-0 text-muted">
+              &rsaquo;
+            </span>
+          </div>
           <a
             href={`https://wa.me/${lead.whatsapp.replace(/\D/g, "")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="block text-xs text-accent hover:underline"
+            className="relative z-[2] block text-xs text-accent hover:underline"
           >
             {lead.whatsapp}
           </a>

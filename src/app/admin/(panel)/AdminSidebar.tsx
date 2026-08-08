@@ -219,7 +219,7 @@ export function AdminSidebar({
           onClick={() => setMobileOpen(true)}
           aria-label="Open admin menu"
           aria-expanded={mobileOpen}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-ink-card text-fg"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-line bg-ink-card text-fg"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
             <path d="M4 7h16M4 12h16M4 17h16" />

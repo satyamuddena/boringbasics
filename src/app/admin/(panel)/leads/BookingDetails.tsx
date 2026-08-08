@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { BookingNextStep, BookingProgressBar } from "@/components/admin/BookingProgressBar";
-import { btnGhost } from "@/components/admin/ui";
+import { btnGhost, focusRing } from "@/components/admin/ui";
 import { ageLabel, bookingProgress, fullDateTime, money } from "@/lib/bookingProgress";
 import { whatsAppDelivery } from "@/lib/whatsappDelivery";
 import {
@@ -119,9 +119,19 @@ function NotifyLine({
 export function BookingDetails({
   booking,
   notify,
+  stretched = false,
 }: {
   booking: BookingDetail;
   notify?: Partial<Record<"trainer" | "customer", NotifyRecord>>;
+  /**
+   * Renders the trigger as an invisible overlay covering its nearest
+   * `position: relative` ancestor instead of a small button, so the whole
+   * booking card opens this sheet. Used on the mobile card only — the
+   * desktop table keeps the small "View" button. The dialog itself is a
+   * `fixed inset-0` overlay, so it renders identically either way; only the
+   * trigger's own box changes.
+   */
+  stretched?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
@@ -145,9 +155,10 @@ export function BookingDetails({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`${btnGhost} px-2 py-1 text-xs`}
+        aria-label={stretched ? `View booking #${booking.id} for ${booking.name}` : undefined}
+        className={stretched ? `absolute inset-0 z-[1] ${focusRing}` : `${btnGhost} px-2 py-1 text-xs`}
       >
-        View
+        {stretched ? null : "View"}
       </button>
 
       {open && progress && (
@@ -161,25 +172,35 @@ export function BookingDetails({
           aria-modal="true"
           aria-label={`Booking #${booking.id}`}
         >
-          <div className="flex min-h-full items-center justify-center p-4">
+          {/*
+            Bottom sheet on phones (items-end, top-rounded, flush to the
+            screen edges — the gesture a phone user already expects),
+            centered dialog from `sm:` up (items-center, rounded all round,
+            capped width). Same two elements as before; only the alignment
+            and the card's own rounding/width change per breakpoint.
+          */}
+          <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
             <div
-              className="relative w-full max-w-2xl rounded-2xl border border-line bg-ink-card shadow-glow"
+              className="relative w-full rounded-t-2xl border border-line bg-ink-card shadow-glow sm:max-w-2xl sm:rounded-2xl"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Drag handle — a phone-only affordance, purely visual. */}
+              <div aria-hidden className="mx-auto mt-2 h-1 w-10 rounded-full bg-line sm:hidden" />
+
               {/* Sticky so Close stays reachable however long the record is. */}
-              <div className="sticky top-0 z-10 rounded-t-2xl border-b border-line/60 bg-ink-card px-5 pb-3 pt-5 sm:px-7">
+              <div className="sticky top-0 z-10 rounded-t-2xl border-b border-line/60 bg-ink-card px-5 pb-3 pt-3 sm:pt-5 sm:px-7">
                 <button
                   type="button"
                   onClick={close}
                   aria-label="Close"
-                  className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-line bg-ink-card text-muted transition-colors hover:border-accent hover:text-accent"
+                  className="absolute right-4 top-3 flex h-11 w-11 items-center justify-center rounded-full border border-line bg-ink-card text-muted transition-colors hover:border-accent hover:text-accent sm:top-4"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
                   </svg>
                 </button>
 
-                <h2 className="pr-10 font-display text-2xl uppercase">{booking.name}</h2>
+                <h2 className="pr-12 font-display text-2xl uppercase">{booking.name}</h2>
                 <p className="mt-0.5 text-sm text-muted">
                   Booking #{booking.id} ·{" "}
                   {booking.contactedAt && booking.status !== "closed"
@@ -188,34 +209,44 @@ export function BookingDetails({
                 </p>
               </div>
 
-              <div className="px-5 pb-6 pt-4 sm:px-7">
+              <div className="px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-7 sm:pb-6">
                 <BookingProgressBar progress={progress} />
 
                 <div className="mt-3">
                   <BookingNextStep progress={progress} />
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2">
+                <div className="mt-3 flex flex-col gap-2">
                   <LeadWhatsAppButton
                     leadId={booking.id}
                     href={`https://wa.me/${booking.whatsapp.replace(/\D/g, "")}`}
                     label={`Message ${firstName}`}
-                    highlight
+                    size="full"
                   />
                   {/* For a call or an email — WhatsApp records itself. */}
                   {booking.status !== "closed" && (
-                    <form action={setLeadStatusAction.bind(null, booking.id, "contacted")}>
-                      <button className={`${btnGhost} px-3 py-1.5 text-sm`}>
-                        I called or emailed them
-                      </button>
-                    </form>
-                  )}
-                  {booking.status !== "closed" && (
-                    <form action={setLeadStatusAction.bind(null, booking.id, "closed")}>
-                      <button className={`${btnGhost} px-3 py-1.5 text-sm`}>
-                        Close this booking
-                      </button>
-                    </form>
+                    <div className="flex gap-2">
+                      <form
+                        action={setLeadStatusAction.bind(null, booking.id, "contacted")}
+                        className="flex-1"
+                      >
+                        <button
+                          className={`${btnGhost} flex h-11 w-full items-center justify-center px-3 text-sm font-semibold`}
+                        >
+                          I called or emailed them
+                        </button>
+                      </form>
+                      <form
+                        action={setLeadStatusAction.bind(null, booking.id, "closed")}
+                        className="flex-1"
+                      >
+                        <button
+                          className={`${btnGhost} flex h-11 w-full items-center justify-center px-3 text-sm font-semibold`}
+                        >
+                          Close this booking
+                        </button>
+                      </form>
+                    </div>
                   )}
                 </div>
 
