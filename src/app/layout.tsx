@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
-import Script from "next/script";
 import { Anton, Inter } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@/components/Analytics";
@@ -78,9 +77,20 @@ export default async function RootLayout({
       style={brandStyles}
     >
       <body className="flex min-h-full flex-col bg-ink text-fg">
-        <Script id="theme-before-paint" strategy="beforeInteractive">
-          {`try{if(localStorage.getItem('boring_basics_theme')==='light')document.documentElement.classList.add('light')}catch(e){}`}
-        </Script>
+        {/*
+          A raw <script>, not next/script. `strategy="beforeInteractive"` with
+          inline children never reaches the served HTML as an executable tag —
+          it is serialized into the RSC flight payload and only runs after
+          hydration, so a stored light preference was silently ignored on every
+          page load. React streams this element into the markup as-is, so the
+          browser runs it while parsing, before any of the page paints.
+          Must stay the first child of <body> for that to hold.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem('boring_basics_theme')==='light')document.documentElement.classList.add('light')}catch(e){}`,
+          }}
+        />
         {children}
         <Analytics />
       </body>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import {
   getCountries,
   getCountryCallingCode,
@@ -42,21 +42,45 @@ interface CountryOption {
   flag: string;
 }
 
-let CACHED: CountryOption[] | null = null;
-function countryOptions(): CountryOption[] {
-  if (CACHED) return CACHED;
-  const dn = new Intl.DisplayNames(["en"], { type: "region" });
-  CACHED = getCountries()
+/**
+ * The country list, twice: once with plain ISO codes for the label and once
+ * with localized names.
+ *
+ * `Intl.DisplayNames` is not safe to render on the server, because Node's ICU
+ * and the browser's disagree on a handful of regions — Node calls FK "Falkland
+ * Islands" where Chrome says "Falkland Islands (Islas Malvinas)". A single
+ * differing `<option>` failed hydration for the whole page, and React responds
+ * to a failed hydration by re-rendering from the server tree, which threw away
+ * the `light` class the pre-paint theme script had just set. Light mode
+ * silently reverted to dark on every page carrying this field.
+ *
+ * So the server and the first client render both use the bare code, which is
+ * identical in both, and the localized names are swapped in after mount where
+ * hydration can no longer be affected. The sort key is the code either way, so
+ * the order never shifts.
+ */
+const CACHED: Partial<Record<"codes" | "names", CountryOption[]>> = {};
+function countryOptions(localized: boolean): CountryOption[] {
+  const key = localized ? "names" : "codes";
+  const cached = CACHED[key];
+  if (cached) return cached;
+  const dn = localized ? new Intl.DisplayNames(["en"], { type: "region" }) : null;
+  const built = getCountries()
     .map((code) => ({
       code,
-      name: dn.of(code) || code,
+      name: (dn ? dn.of(code) : code) || code,
       calling: getCountryCallingCode(code),
       flag: flag(code),
     }))
-    // Deterministic across server/browser ICU data to avoid hydration mismatch.
     .sort((a, b) => a.code.localeCompare(b.code));
-  return CACHED;
+  CACHED[key] = built;
+  return built;
 }
+
+/* Stable identities for the "am I on the client yet" store below. */
+const neverChanges = () => () => {};
+const onClient = () => true;
+const onServer = () => false;
 
 const controlCls = (invalid: boolean) =>
   `w-full rounded-xl border bg-ink px-4 py-3 text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent ${
@@ -77,7 +101,15 @@ export function PhoneField({
   onChange: (next: PhoneValue) => void;
   invalid?: boolean;
 }) {
-  const options = useMemo(() => countryOptions(), []);
+  /*
+    False for the server render and the hydrating one, true from then on — see
+    countryOptions above for why the names cannot be rendered on the server.
+    useSyncExternalStore rather than a mount flag in an effect: it is the same
+    idiom ThemeToggle uses for its own server snapshot, and it does not set
+    state from an effect.
+  */
+  const localized = useSyncExternalStore(neverChanges, onClient, onServer);
+  const options = useMemo(() => countryOptions(localized), [localized]);
   return (
     <div className="space-y-2">
       <select
