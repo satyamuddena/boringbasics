@@ -60,7 +60,7 @@ export const inputClass =
 export const fieldLabelClass =
   "mb-1 block text-xs font-semibold uppercase tracking-wider text-muted";
 
-export const fieldHintClass = "mt-1 block text-xs text-muted/70";
+export const fieldHintClass = "mt-1 block text-xs text-muted";
 
 /* ── Surfaces ─────────────────────────────────────────────────────────────*/
 

@@ -117,7 +117,7 @@ export function GalleryEditor({
           />
         </label>
       </div>
-      <p className="mt-1 text-xs text-muted/70">
+      <p className="mt-1 text-xs text-muted">
         {IMAGE_SPECS[kind].label} — larger images are resized automatically.
       </p>
       {busy && <p className="mt-1 text-xs text-muted">Uploading…</p>}

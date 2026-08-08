@@ -49,7 +49,7 @@ export function ImageUploadField({
       <span className={fieldLabelClass}>{label}</span>
       {/* Hint sits above the control here, not below as in `Field` — it says
           what to upload, which is only useful before you pick a file. */}
-      <span className="mb-2 block text-xs text-muted/70">
+      <span className="mb-2 block text-xs text-muted">
         {IMAGE_SPECS[kind].label} — larger images are resized automatically.
       </span>
       <input type="hidden" name={name} value={path} />

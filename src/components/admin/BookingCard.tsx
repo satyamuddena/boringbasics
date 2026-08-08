@@ -124,7 +124,7 @@ export function BookingCard({
         );
       })}
 
-      <p className="mt-2 text-xs text-muted/70">
+      <p className="mt-2 text-xs text-muted">
         Booking #{lead.id}
         {lead.goal ? ` · ${lead.goal}` : ""}
         {lead.level ? ` · ${lead.level}` : ""}

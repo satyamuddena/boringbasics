@@ -305,7 +305,7 @@ export function LeadForm({
             : "Payment is received. I'll email you to lock in a time for your consultation."}
           {form.subscribe && " You're also on the newsletter list — welcome!"}
         </p>
-        {bookingId && <p className="mt-3 text-xs text-muted/70">Booking ID: #{bookingId}</p>}
+        {bookingId && <p className="mt-3 text-xs text-muted">Booking ID: #{bookingId}</p>}
       </div>
     );
   }
@@ -444,7 +444,7 @@ export function LeadForm({
                   <span className="text-sm text-muted">Consultation call · {consultation.durationLabel}</span>
                   <span className="font-display text-2xl text-accent">{priceLabel}</span>
                 </div>
-                {bookingId && <p className="mt-2 text-xs text-muted/70">Booking ID: #{bookingId}</p>}
+                {bookingId && <p className="mt-2 text-xs text-muted">Booking ID: #{bookingId}</p>}
                 <p className="mt-2 text-sm text-muted">
                   Pay to confirm. You&apos;ll immediately pick a time on the next step.
                   If payment succeeds but scheduling fails, use your booking ID when contacting us.
@@ -510,7 +510,7 @@ export function LeadForm({
                 Payment received. Choose a slot below — you&apos;ll get a confirmation email and
                 calendar invite instantly.
               </p>
-              {bookingId && <p className="text-xs text-muted/70">Booking ID: #{bookingId}</p>}
+              {bookingId && <p className="text-xs text-muted">Booking ID: #{bookingId}</p>}
               <a
                 href={calendlyDirectUrl}
                 target="_blank"
@@ -524,7 +524,7 @@ export function LeadForm({
                 prefill={{ name: form.name, email: form.email.trim() }}
                 onScheduled={handleScheduled}
               />
-              <p className="text-xs text-muted/70">
+              <p className="text-xs text-muted">
                 If the scheduler does not load, use the Calendly button above or message us with
                 your booking ID.
               </p>

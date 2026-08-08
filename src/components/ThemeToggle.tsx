@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "boring_basics_theme";
 
@@ -27,9 +27,39 @@ function setTheme(light: boolean) {
  * localStorage and is applied before paint by the inline script in the root
  * layout (no flash). Works on the public site and the admin panel alike.
  */
-export function ThemeToggle({ className = "" }: { className?: string }) {
+export function ThemeToggle({
+  className = "",
+  onDark = false,
+}: {
+  className?: string;
+  /**
+   * Sitting on dark media (the home hero) rather than a themed surface, so the
+   * icon and border are fixed to white. A prop rather than caller classes for
+   * the same layer-order reason as BrandLogo's.
+   */
+  onDark?: boolean;
+}) {
   // Server snapshot: dark (brand default) — corrected on hydration if stored light.
   const light = useSyncExternalStore(subscribe, isLight, () => false);
+
+  /*
+    Re-assert the stored preference once mounted.
+
+    The pre-paint script in the root layout is what normally applies the class,
+    but it only runs while the initial HTML is parsed. If hydration fails for
+    any reason React re-renders from the server tree and drops the class, and
+    the preference is lost with no way back until the next toggle. Reading
+    localStorage here restores it, so a mismatch anywhere on the page can't
+    silently strip the theme.
+  */
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY) === "light";
+      if (stored !== isLight()) setTheme(stored);
+    } catch {
+      /* private mode — nothing stored to restore */
+    }
+  }, []);
 
   function toggle() {
     setTheme(!isLight());
@@ -41,7 +71,11 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       onClick={toggle}
       aria-label={light ? "Switch to dark mode" : "Switch to light mode"}
       title={light ? "Switch to dark mode" : "Switch to light mode"}
-      className={`flex h-10 w-10 items-center justify-center rounded-lg border border-line text-muted transition-colors hover:border-accent hover:text-accent ${className}`}
+      className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
+        onDark
+          ? "border-white/30 text-white/80 hover:border-white hover:text-white"
+          : "border-line text-muted hover:border-accent hover:text-accent"
+      } ${className}`}
     >
       {light ? (
         /* moon — click to go dark */

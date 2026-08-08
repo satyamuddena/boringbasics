@@ -44,10 +44,12 @@ export async function Hero() {
         {/* Copy */}
         <div className="relative z-10">
           <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-accent-soft backdrop-blur">
+            {/* accent-vivid, not accent: this sits on the video, which stays
+                dark in light mode, where the themed accent is darkened. */}
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-accent-vivid backdrop-blur">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-vivid opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent-vivid" />
               </span>
               {trainer.tagline} · {trainer.location.split(",")[0]}
             </span>
@@ -63,7 +65,7 @@ export async function Hero() {
               <em className="font-semibold not-italic text-white">your blood work</em> — helping you
               lose fat, build muscle, improve metabolic health and manage conditions like
               prediabetes, diabetes, high cholesterol and PCOS with{" "}
-              <span className="font-semibold text-accent-soft">science-based coaching</span>.
+              <span className="font-semibold text-accent-vivid">science-based coaching</span>.
             </p>
           </Reveal>
           <Reveal delay={0.24}>
@@ -98,7 +100,7 @@ export async function Hero() {
           <div className="relative mx-auto w-full max-w-md">
             {/* Accent glow ring behind the card */}
             <div
-              className="pointer-events-none absolute -inset-3 rounded-[2rem] bg-gradient-to-tr from-accent-deep/30 via-accent/20 to-transparent blur-2xl"
+              className="pointer-events-none absolute -inset-3 rounded-[2rem] bg-gradient-to-tr from-accent-deep/30 via-accent-vivid/20 to-transparent blur-2xl"
               aria-hidden
             />
             <div className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl border border-line shadow-glow">

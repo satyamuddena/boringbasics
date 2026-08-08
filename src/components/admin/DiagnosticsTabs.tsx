@@ -71,7 +71,7 @@ export function DiagnosticsConfig({
           <li key={v.name} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
             <span className="min-w-0">
               <code className="font-mono text-xs text-fg">{v.name}</code>
-              <span className="block text-xs text-muted/70">{v.note}</span>
+              <span className="block text-xs text-muted">{v.note}</span>
             </span>
             <span
               className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${

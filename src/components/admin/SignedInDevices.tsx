@@ -66,7 +66,7 @@ export async function SignedInDevices({ userId }: { userId: number }) {
                   {session.ip ?? "unknown IP"} · signed in {ageLabel(session.createdAt)}
                   {session.lastUsedAt ? ` · last used ${ageLabel(session.lastUsedAt)}` : ""}
                 </p>
-                <p className="text-xs text-muted/70" title={fullDateTime(session.expiresAt)}>
+                <p className="text-xs text-muted" title={fullDateTime(session.expiresAt)}>
                   Stays signed in until {fullDateTime(session.expiresAt)} unless used again
                 </p>
               </div>

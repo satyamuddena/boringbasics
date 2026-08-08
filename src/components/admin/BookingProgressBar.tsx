@@ -54,7 +54,7 @@ export function BookingProgressBar({ progress }: { progress: BookingProgress }) 
             >
               {step.label}
             </p>
-            <p className="truncate text-[11px] text-muted/70">{step.note}</p>
+            <p className="truncate text-[11px] text-muted">{step.note}</p>
           </div>
           {i < progress.steps.length - 1 && (
             <span

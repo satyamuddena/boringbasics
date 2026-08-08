@@ -131,7 +131,7 @@ export default async function HomePage() {
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((s, i) => (
             <Reveal key={s.n} delay={i * 0.08} className="relative rounded-2xl border border-line bg-ink-card p-6">
-              <span className="font-display text-5xl text-accent/30">{s.n}</span>
+              <span className="font-display text-5xl text-accent/70">{s.n}</span>
               <h3 className="mt-3 font-display text-xl uppercase">{s.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{s.text}</p>
             </Reveal>

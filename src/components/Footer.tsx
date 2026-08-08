@@ -107,7 +107,7 @@ export async function Footer() {
           <p>
             © {year} {trainer.brand}. All rights reserved.
           </p>
-          <p className="text-muted/70">
+          <p className="text-muted">
             Results vary from person to person. Coaching is not a substitute for
             medical advice.
           </p>

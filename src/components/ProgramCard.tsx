@@ -61,7 +61,7 @@ export function ProgramCard({
             </li>
           ))}
           {program.features.length > 3 && (
-            <li className="pl-6 text-xs text-muted/70">
+            <li className="pl-6 text-xs text-muted">
               + {program.features.length - 3} more inclusions
             </li>
           )}

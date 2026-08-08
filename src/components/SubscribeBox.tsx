@@ -78,7 +78,7 @@ export function SubscribeBox() {
         </label>
       </div>
       {status === "error" && <p className="mt-2 text-xs text-bad">{error}</p>}
-      <p className="mt-2 text-xs text-muted/70">
+      <p className="mt-2 text-xs text-muted">
         Fitness tips and updates. Unsubscribe anytime.
       </p>
     </form>

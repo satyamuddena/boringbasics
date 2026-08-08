@@ -39,7 +39,7 @@ export function NewsletterSendControls({ subscriberCount }: { subscriberCount: n
       <p
         role="status"
         aria-live="polite"
-        className={`mt-2 text-xs ${pending ? "text-accent" : "text-muted/70"}`}
+        className={`mt-2 text-xs ${pending ? "text-accent" : "text-muted"}`}
       >
         {pendingIntent === "test"
           ? `Sending a test to ${testRecipient}. Keep this page open until the result appears.`

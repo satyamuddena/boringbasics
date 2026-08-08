@@ -14,6 +14,12 @@
   --color-accent: var(--brand-accent, #ff5a0a);
   --color-accent-soft: color-mix(in srgb, var(--brand-accent, #ff5a0a) 78%, white);
   --color-accent-deep: color-mix(in srgb, var(--brand-accent, #ff5a0a) 78%, black);
+  /* The brand orange at full strength, in both themes. For the few elements
+     that sit on permanently dark media rather than on a themed surface — the
+     hero's video scrims and the transparent header above them — where the
+     light-mode accent below would be far too dark to read. Everything on a
+     normal surface should use --color-accent, which flips. */
+  --color-accent-vivid: var(--brand-accent, #ff5a0a);
   /* Accent for small text (nav section headings). Full strength on dark, where
      it clears 6:1; darkened in .light, where raw accent on paper is only 2.7:1
      and fails even the large-text bar. Flips with the theme like ok/warn/bad. */
@@ -49,7 +55,19 @@
   --color-muted: #67635c; /* secondary text */
   --color-fg: #171512; /* primary text */
 
-  --color-accent-soft: color-mix(in srgb, var(--brand-accent, #ff5a0a) 78%, black);
+  /* Raw #ff5a0a on this paper base is only 2.7:1 as text, and near-white
+     button labels on it are 2.95:1 — both fail AA. Darkening the token fixes
+     text and buttons at once, because a button only changes its background
+     (its text-ink label is already near-white here).
+     72%, not 76%: the mix has to clear 4.5:1 against the *darkest* light
+     surface it lands on, which is --color-ink-soft (#f1eee9), not the paper
+     base. At 76% the section eyebrows on those bands measured 4.4:1. This
+     gives 4.8:1 there and 5.2:1 on paper.
+     Elements on dark media opt out via --color-accent-vivid. */
+  --color-accent: color-mix(in srgb, var(--brand-accent, #ff5a0a) 72%, black);
+  /* Hover has to stay distinguishable from the darkened accent above, so this
+     goes further down rather than towards white as it does on dark. */
+  --color-accent-soft: color-mix(in srgb, var(--brand-accent, #ff5a0a) 60%, black);
   --color-accent-label: color-mix(in srgb, var(--brand-accent, #ff5a0a) 70%, black);
 
   --color-ok: #15803d;

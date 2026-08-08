@@ -52,7 +52,7 @@ export function PromoteFields({
           label="Promote in banner"
           defaultChecked={on}
         />
-        <p className="-mt-2 pl-6 text-xs text-muted/70">
+        <p className="-mt-2 pl-6 text-xs text-muted">
           Shows this as a clickable strip below the menu on every page. Up to two
           promotions run at once — a third stays off until one ends.
         </p>

@@ -26,6 +26,19 @@ export function Header({
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  /**
+   * The home hero is full-bleed and runs *under* this header, so while the bar
+   * is still transparent it sits on a dark video rather than on the page
+   * surface. In light mode the themed text colours are near-black and vanish
+   * there, so this state pins them to white instead.
+   *
+   * Deliberately narrow. Once scrolled the header paints `bg-ink/90` — light
+   * paper in light mode — and every other page puts the page background behind
+   * the transparent bar, so in both of those cases the themed colours are the
+   * correct ones. `Hero` is rendered only by app/(site)/page.tsx.
+   */
+  const overHero = pathname === "/" && !scrolled && !open;
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -46,6 +59,7 @@ export function Header({
           logoPath={logoPath}
           brandName={brandName}
           tagline={brandTagline}
+          onDark={overHero}
           wordmarkClassName="text-[15px] tracking-[0.06em] sm:text-lg sm:tracking-[0.08em]"
         />
 
@@ -60,8 +74,14 @@ export function Header({
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className={`text-sm font-medium transition-colors hover:text-accent ${
-                    active ? "text-accent" : "text-fg"
+                  className={`text-sm font-medium transition-colors ${
+                    overHero
+                      ? active
+                        ? "text-accent-vivid"
+                        : "text-white/90 hover:text-white"
+                      : active
+                        ? "text-accent"
+                        : "text-fg hover:text-accent"
                   }`}
                 >
                   {link.label}
@@ -72,7 +92,7 @@ export function Header({
         </ul>
 
         <div className="hidden items-center gap-3 md:flex">
-          <ThemeToggle />
+          <ThemeToggle onDark={overHero} />
           <ButtonLink href="/contact" size="md">
             {ctaLabel}
           </ButtonLink>
@@ -80,10 +100,12 @@ export function Header({
 
         {/* Mobile: theme toggle + menu button */}
         <div className="flex items-center gap-2 md:hidden">
-        <ThemeToggle />
+        <ThemeToggle onDark={overHero} />
         <button
           type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-line text-fg md:hidden"
+          className={`flex h-10 w-10 items-center justify-center rounded-lg border md:hidden ${
+            overHero ? "border-white/30 text-white" : "border-line text-fg"
+          }`}
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
