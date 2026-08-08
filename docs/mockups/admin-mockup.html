@@ -1,0 +1,534 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Boring Basics Admin — Mobile Bookings Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0a0a0b; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+  .display { font-family: 'Anton', 'Arial Narrow', sans-serif; letter-spacing: 0.01em; line-height: 0.95; text-transform: uppercase; }
+  .accent { color: #ff5a0a; }
+  .stage { display: flex; gap: 64px; align-items: flex-start; padding: 56px; flex-wrap: wrap; justify-content: center; }
+  .col { display: flex; flex-direction: column; align-items: center; }
+  .col h2 { font-family: 'Inter'; color: #f4f4f5; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 18px; }
+  .col .dims { color: #71717a; font-size: 12px; margin-top: -12px; margin-bottom: 22px; }
+
+  .device { position: relative; background: #000; padding: 14px; box-shadow: 0 30px 80px -20px rgba(0,0,0,0.8), 0 0 0 1px #2a2a2e; }
+  .device.iphone { width: 418px; border-radius: 62px; padding: 16px; }
+  .device.android { width: 440px; border-radius: 46px; padding: 12px; }
+  .screen { position: relative; width: 100%; overflow: hidden; background: #0a0a0b; }
+  .device.iphone .screen { border-radius: 48px; }
+  .device.android .screen { border-radius: 36px; }
+
+  .notch { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 100px; height: 30px; background: #000; border-radius: 20px; z-index: 40; }
+  .punch-hole { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border-radius: 50%; z-index: 40; border: 2px solid #111; }
+  .home-indicator { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 134px; height: 5px; background: rgba(255,255,255,0.9); border-radius: 3px; z-index: 40; }
+  .gesture-bar { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 110px; height: 4px; background: rgba(255,255,255,0.85); border-radius: 3px; z-index: 40; }
+
+  .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 0 26px; font-size: 13px; font-weight: 600; color: #fff; background:#121214; }
+  .device.iphone .statusbar { height: 50px; padding-top: 12px; }
+  .device.android .statusbar { height: 34px; font-size: 12px; padding: 0 20px; }
+
+  /* ---- admin top bar ---- */
+  .adminbar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(18,18,20,0.95); border-bottom: 1px solid #27272a; position: relative; }
+  .burger { width: 44px; height: 44px; border-radius: 12px; border: 1px solid #27272a; background:#18181b; display: flex; align-items: center; justify-content: center; flex: none; }
+  .burger span { display: block; width: 18px; height: 2px; background: #f4f4f5; box-shadow: 0 5px 0 #f4f4f5, 0 -5px 0 #f4f4f5; }
+  .adminwordmark { font-family: 'Anton'; text-transform: uppercase; font-size: 14px; letter-spacing: 0.04em; color: #f4f4f5; }
+  .adminwordmark .dot { color: #ff5a0a; }
+
+  .push-banner { margin: 12px 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid #27272a; background: #18181b; font-size: 12px; color: #d4d4d8; }
+  .push-banner .en { flex:none; padding: 7px 12px; border-radius: 8px; border: 1px solid #ff5a0a; color: #ff5a0a; font-weight: 700; font-size: 11.5px; }
+
+  .pageheading { padding: 16px 14px 10px; border-bottom: 1px solid #27272a; }
+  .pageheading h1 { font-family: 'Anton'; text-transform: uppercase; font-size: 22px; margin: 0; color: #f4f4f5; }
+
+  .filterbar { margin: 12px 14px 0; padding: 12px 14px; border-radius: 14px; border: 1px solid #27272a; background: #18181b; display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; color: #d4d4d8; }
+  .filterbar .chev { color: #71717a; font-size: 12px; }
+
+  .tabrow-wrap { position: relative; }
+  .tabrow-wrap::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 36px; background: linear-gradient(90deg, transparent, #0a0a0b); pointer-events: none; }
+  .tabrow-wrap { position: relative; }
+  .tabrow-wrap::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 34px; background: linear-gradient(90deg, transparent, #0a0a0b); pointer-events: none; z-index: 5; }
+  .tabrow-wrap .more-hint { position: absolute; top: 17px; right: 6px; z-index: 6; color: #71717a; font-size: 13px; pointer-events: none; }
+  .tabrow { display: flex; gap: 6px; overflow-x: auto; padding: 12px 14px 0; position: relative; scroll-snap-type: x proximity; scroll-padding-left: 14px; }
+  .tab { flex: none; padding: 11px 15px; border-radius: 12px 12px 0 0; border: 1px solid #27272a; border-bottom: none; background: #18181b; color: #a1a1aa; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; scroll-snap-align: start; }
+  .tab.active { background: #202023; color: #f4f4f5; border-color: #3f3f46; }
+  .tab .count { font-size: 10.5px; padding: 1px 6px; border-radius: 999px; background: #27272a; color: #a1a1aa; }
+  .tab.urgent .count { background: rgba(250,204,21,0.15); color: #facc15; }
+
+  .list { margin: 0 14px; border: 1px solid #27272a; border-top: 1px solid #3f3f46; background: #18181b; border-radius: 0 0 16px 16px; overflow: hidden; }
+
+  .card { position: relative; border-bottom: 1px solid #27272a; padding: 14px; }
+  .card:last-child { border-bottom: none; }
+  .card.warn { background: rgba(250,204,21,0.06); border-left: 3px solid #facc15; }
+  .card.muted { opacity: 0.62; }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .card-id { min-width: 0; }
+  .card-id .nm { font-weight: 700; font-size: 14.5px; color: #f4f4f5; display:flex; align-items:center; gap:6px; }
+  .chev-right { color: #52525b; font-size: 15px; }
+  .card-id .ph { font-size: 11.5px; color: #ff5a0a; margin-top: 2px; }
+  .card-id .em { font-size: 11px; color: #71717a; }
+  .pill { flex: none; font-size: 10.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid; white-space:nowrap; }
+  .pill.accent2 { color: #ff5a0a; border-color: rgba(255,90,10,0.4); }
+  .pill.warn { color: #facc15; border-color: rgba(250,204,21,0.4); }
+  .pill.muted { color: #a1a1aa; border-color: #3f3f46; }
+
+  .needs-tag { display:inline-flex; align-items:center; gap:5px; margin-top:8px; font-size: 11px; font-weight: 700; color: #facc15; }
+
+  .dots { display: flex; gap: 4px; margin-top: 10px; }
+  .dots span { height: 5px; width: 20px; border-radius: 3px; background: #3f3f46; }
+  .dots span.done { background: #4ade80; }
+  .dots span.now { background: #facc15; }
+  .stage-line { margin-top: 5px; font-size: 11.5px; font-weight: 700; color: #f4f4f5; }
+  .hint-line { font-size: 11px; color: #a1a1aa; margin-top: 1px; }
+  .hint-line.warn { color: #facc15; }
+
+  .metagrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin-top: 10px; font-size: 11px; }
+  .metagrid dt { color: #71717a; }
+  .metagrid dd { margin: 0; text-align: right; color: #d4d4d8; font-weight: 600; }
+  .bkid { margin-top: 8px; font-size: 10.5px; color: #52525b; }
+
+  .actions { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .actions-row { display: flex; gap: 8px; }
+  .btn44 { flex: 1; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 12.5px; font-weight: 700; border: 1px solid #27272a; color: #d4d4d8; background: #121214; }
+  .btnwa-big { height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13.5px; font-weight: 800; background: #ff5a0a; color: #0a0a0b; box-shadow: 0 10px 26px -10px rgba(255,90,10,0.6); }
+  .wa-ic { width: 18px; height: 18px; border-radius: 50%; background: #25D366; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; flex:none; }
+  .btnwa-big .wa-ic { background: #0a0a0b1a; }
+
+  .section-note { margin: 20px 14px 6px; text-align: center; font-size: 11px; color: #ff5a0a; font-weight: 700; padding: 8px 10px; border: 1.5px dashed rgba(255,90,10,0.5); border-radius: 10px; position: relative; }
+
+  /* ---- bottom sheet ---- */
+  .sheet-wrap { margin: 14px; }
+  .sheet { border-radius: 22px 22px 0 0; border: 1px solid #3f3f46; background: #18181b; box-shadow: 0 -20px 40px rgba(0,0,0,0.5); position: relative; }
+  .drag { width: 40px; height: 5px; border-radius: 3px; background: #3f3f46; margin: 10px auto 0; }
+  .sheet-head { padding: 10px 16px 12px; position: relative; }
+  .sheet-close { position: absolute; top: 8px; right: 12px; width: 44px; height: 44px; border-radius: 50%; border: 1px solid #27272a; background: #121214; display: flex; align-items: center; justify-content: center; color: #a1a1aa; font-size: 15px; }
+  .sheet-head h2 { font-family: 'Anton'; text-transform: uppercase; font-size: 20px; margin: 4px 0 2px; padding-right: 50px; color: #f4f4f5; }
+  .sheet-head p { font-size: 12px; color: #a1a1aa; margin: 0; }
+
+  .progress-full { margin: 0 16px; display: flex; border: 1px solid #27272a; background: #121214; border-radius: 14px; padding: 12px 6px; }
+  .pstep { flex: 1; text-align: center; padding: 0 2px; }
+  .pdot { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 11px; font-weight: 800; border: 1.5px solid; }
+  .pdot.done { color: #4ade80; border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.1); }
+  .pdot.now { color: #facc15; border-color: rgba(250,204,21,0.4); background: rgba(250,204,21,0.1); }
+  .pdot.pending { color: #52525b; border-color: #3f3f46; }
+  .plabel { font-size: 9.5px; font-weight: 700; margin-top: 5px; color: #d4d4d8; }
+  .pnote { font-size: 8.5px; color: #71717a; }
+
+  .next-box { margin: 12px 16px 0; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(250,204,21,0.4); background: rgba(250,204,21,0.08); }
+  .next-box .t { font-size: 12.5px; font-weight: 700; color: #facc15; }
+  .next-box .s { font-size: 11.5px; color: #e4e4e7; margin-top: 2px; }
+
+  .sheet-actions { margin: 12px 16px 0; display: flex; flex-direction: column; gap: 8px; }
+
+  .sheet-section { margin: 16px 16px 0; padding-top: 12px; border-top: 1px solid #27272a; }
+  .sheet-section h3 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #71717a; margin: 0 0 6px; }
+  .kv { display: grid; grid-template-columns: 90px 1fr; gap: 6px 10px; font-size: 12px; padding: 3px 0; }
+  .kv dt { color: #a1a1aa; margin:0; }
+  .kv dd { margin: 0; color: #f4f4f5; }
+  .kv dd.link { color: #ff5a0a; }
+
+  .disclosure { margin: 16px 16px 18px; padding-top: 12px; border-top: 1px solid #27272a; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #71717a; display:flex; align-items:center; gap:6px; }
+
+  .badge { position: absolute; width: 24px; height: 24px; border-radius: 50%; background: #ff5a0a; color: #0a0a0b; font-family: 'Inter'; font-weight: 800; font-size: 12.5px; display: flex; align-items: center; justify-content: center; z-index: 50; box-shadow: 0 0 0 3px #0a0a0b, 0 4px 10px rgba(0,0,0,0.5); }
+
+  .legend { width: 100%; max-width: 420px; margin-top: 22px; background: #121214; border: 1px solid #27272a; border-radius: 14px; padding: 16px 18px; }
+  .legend h3 { margin: 0 0 10px; font-size: 12px; color: #f4f4f5; text-transform: uppercase; letter-spacing: 0.08em; }
+  .legend ol { margin: 0; padding: 0 0 0 4px; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .legend li { display: flex; gap: 10px; font-size: 12px; color: #a1a1aa; line-height: 1.5; }
+  .legend .lnum { flex: none; width: 20px; height: 20px; border-radius: 50%; background: #ff5a0a; color: #0a0a0b; font-weight: 800; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+  .safe-bottom { height: 26px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="col">
+    <h2>iPhone &middot; 390 &times; 844</h2>
+    <div class="dims">Admin &mdash; Bookings (list + detail sheet)</div>
+    
+<div class="device iphone">
+  <div class="notch"></div>
+  <div class="screen">
+    <div class="statusbar"><span>9:41</span><span>•••• 5G 🔋</span></div>
+
+    <div class="adminbar" style="position:relative;">
+      <span class="badge" style="top:-8px; left:34px;">1</span>
+      <div class="burger"><span></span></div>
+      <div class="adminwordmark">Boring<span class="dot">.</span>Basics</div>
+    </div>
+
+    <div class="push-banner">
+      <span>🔔 Get notified when a new booking comes in</span>
+      <span class="en">Enable</span>
+    </div>
+
+    <div class="pageheading"><h1>Bookings</h1></div>
+
+    <div class="filterbar"><span>Search &amp; filter</span><span class="chev">▾</span></div>
+
+    <div class="tabrow-wrap">
+      <span class="badge" style="top:2px; left:16px; z-index:41;">2</span>
+      <span class="more-hint">&rsaquo;</span>
+      <div class="tabrow">
+        <div class="tab active">Upcoming <span class="count">3</span></div>
+        <div class="tab urgent">Needs you <span class="count">2</span></div>
+        <div class="tab">Never paid <span class="count">1</span></div>
+        <div class="tab">No time picked <span class="count">0</span></div>
+        <div class="tab">Closed <span class="count">5</span></div>
+        <div class="tab">All <span class="count">11</span></div>
+      </div>
+    </div>
+
+    <div class="list">
+
+      <div class="card warn">
+        <div class="card-top">
+          <div class="card-id">
+            <div class="nm">Priya Sharma <span class="chev-right">&rsaquo;</span></div>
+            <div class="ph">+91 98765 43210</div>
+            <div class="em">priya.sharma@gmail.com</div>
+          </div>
+          <span class="pill accent2">Not contacted</span>
+        </div>
+        <div class="needs-tag">&#9888; Needs a reply</div>
+        <div class="dots"><span class="done"></span><span class="done"></span><span class="now"></span><span></span></div>
+        <div class="hint-line warn">Next: they haven&#39;t paid yet</div>
+        <dl class="metagrid">
+          <dt>Call time</dt><dd>Not picked</dd>
+          <dt>Came in</dt><dd>2 hours ago</dd>
+        </dl>
+        <div class="bkid">Booking #482 &middot; Fat loss &middot; Beginner</div>
+        <div class="actions" style="position:relative;">
+          <span class="badge" style="top:-10px; right:-4px;">3</span>
+          <div class="btnwa-big"><span class="wa-ic">&#9743;</span>Message Priya on WhatsApp</div>
+          <div class="actions-row">
+            <div class="btn44">Close booking</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <div class="card-id">
+            <div class="nm">Arjun Rao <span class="chev-right">&rsaquo;</span></div>
+            <div class="ph">+91 90000 11122</div>
+            <div class="em">arjun.rao@outlook.com</div>
+          </div>
+          <span class="pill warn">Messaged 3h ago</span>
+        </div>
+        <div class="dots"><span class="done"></span><span class="done"></span><span class="done"></span><span class="now"></span></div>
+        <div class="stage-line">Call booked</div>
+        <dl class="metagrid">
+          <dt>Call time</dt><dd style="color:#f4f4f5;">Today, 6:00 PM</dd>
+          <dt>Came in</dt><dd>1 day ago</dd>
+        </dl>
+        <div class="bkid">Booking #479 &middot; Muscle gain &middot; Intermediate</div>
+        <div class="actions">
+          <div class="actions-row">
+            <div class="btn44"><span class="wa-ic">&#9743;</span>WhatsApp</div>
+            <div class="btn44">Close</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card muted">
+        <div class="card-top">
+          <div class="card-id">
+            <div class="nm">Meera Iyer <span class="chev-right">&rsaquo;</span></div>
+            <div class="ph">+91 93333 44556</div>
+          </div>
+          <span class="pill muted">Closed</span>
+        </div>
+        <div class="dots"><span class="done"></span><span class="done"></span><span class="done"></span><span class="done"></span></div>
+        <div class="stage-line" style="color:#a1a1aa;">Call done</div>
+        <dl class="metagrid">
+          <dt>Call time</dt><dd>Wed, 11:00 AM</dd>
+          <dt>Came in</dt><dd>9 days ago</dd>
+        </dl>
+        <div class="bkid">Booking #461 &middot; Recomp</div>
+        <div class="actions">
+          <div class="actions-row">
+            <div class="btn44"><span class="wa-ic">&#9743;</span>WhatsApp</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-note" style="position:relative;">
+      <span class="badge" style="top:-10px; right:24px;">4</span>
+      Tap any card &darr; opens the full-screen detail sheet below
+    </div>
+
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <span class="badge" style="top:-10px; left:-10px; z-index:60;">5</span>
+        <div class="drag"></div>
+        <div class="sheet-head">
+          <div class="sheet-close">&times;</div>
+          <h2>Priya Sharma</h2>
+          <p>Booking #482 &middot; You have not contacted them</p>
+        </div>
+
+        <div class="progress-full">
+          <div class="pstep"><div class="pdot done">&#10003;</div><div class="plabel">Form</div><div class="pnote">2h ago</div></div>
+          <div class="pstep"><div class="pdot done">&#10003;</div><div class="plabel">Paid</div><div class="pnote">2h ago</div></div>
+          <div class="pstep"><div class="pdot now">!</div><div class="plabel">Slot</div><div class="pnote">Waiting</div></div>
+          <div class="pstep"><div class="pdot pending">&middot;</div><div class="plabel">Call</div><div class="pnote">&mdash;</div></div>
+        </div>
+
+        <div class="next-box">
+          <div class="t">They haven&#39;t paid yet</div>
+          <div class="s">Nudge Priya to complete payment, or offer to help her pick a slot.</div>
+        </div>
+
+        <div class="sheet-actions">
+          <div class="btnwa-big"><span class="wa-ic">&#9743;</span>Message Priya on WhatsApp</div>
+          <div class="actions-row">
+            <div class="btn44">I called or emailed them</div>
+            <div class="btn44">Close this booking</div>
+          </div>
+        </div>
+
+        <div class="sheet-section">
+          <h3>Contact</h3>
+          <dl class="kv">
+            <dt>WhatsApp</dt><dd class="link">+91 98765 43210</dd>
+            <dt>Email</dt><dd class="link">priya.sharma@gmail.com</dd>
+            <dt>Wants</dt><dd>Fat loss &middot; Beginner</dd>
+          </dl>
+        </div>
+
+        <div class="sheet-section">
+          <h3>Consultation</h3>
+          <dl class="kv">
+            <dt>Call time</dt><dd>Not picked yet</dd>
+            <dt>Paid</dt><dd>&#8377;3,000 on 6 Aug, 4:12 PM</dd>
+          </dl>
+        </div>
+
+        <div class="sheet-section">
+          <h3>Confirmation messages we sent</h3>
+          <dl class="kv">
+            <dt>To you</dt><dd>Not sent</dd>
+            <dt>To Priya</dt><dd>Not sent</dd>
+          </dl>
+        </div>
+
+        <div class="disclosure">Payment and technical details &#9662;</div>
+      </div>
+    </div>
+
+    <div class="safe-bottom"></div>
+    <div class="home-indicator"></div>
+  </div>
+</div>
+    
+  <div class="legend">
+    <h3>What changed vs. today, and why</h3>
+    <ol>
+      <li><span class="lnum">1</span><span>Menu button grows to 44&times;44 (was 40&times;40) &mdash; it's the only way into every other admin page, right next to the notch.</span></li>
+      <li><span class="lnum">2</span><span>Tabs get a full 44px tap row, plus a fade + scroll-snap so "more tabs off-screen" reads as a swipeable row, not a dead end.</span></li>
+      <li><span class="lnum">3</span><span>On a card that needs a reply, WhatsApp becomes a full-width 50px button &mdash; today it's a ~28px chip, the smallest target for the most urgent action.</span></li>
+      <li><span class="lnum">4</span><span>The whole card opens the detail sheet (chevron signals it) instead of a tiny "View" label &mdash; one of three ~28px buttons crowded into a row.</span></li>
+      <li><span class="lnum">5</span><span>The centered pop-up becomes a bottom sheet on phones: drag handle, 44&times;44 close button pinned top-right, action buttons sized the same 44&ndash;52px as the list.</span></li>
+    </ol>
+  </div>
+  </div>
+  <div class="col">
+    <h2>Android &middot; 412 &times; 915</h2>
+    <div class="dims">Admin &mdash; Bookings (list + detail sheet)</div>
+    
+<div class="device android">
+  <div class="punch-hole"></div>
+  <div class="screen">
+    <div class="statusbar"><span>9:41</span><span>5G 🔋 87%</span></div>
+
+    <div class="adminbar" style="position:relative;">
+      <span class="badge" style="top:-8px; left:34px;">1</span>
+      <div class="burger"><span></span></div>
+      <div class="adminwordmark">Boring<span class="dot">.</span>Basics</div>
+    </div>
+
+    <div class="push-banner">
+      <span>🔔 Get notified when a new booking comes in</span>
+      <span class="en">Enable</span>
+    </div>
+
+    <div class="pageheading"><h1>Bookings</h1></div>
+
+    <div class="filterbar"><span>Search &amp; filter</span><span class="chev">▾</span></div>
+
+    <div class="tabrow-wrap">
+      <span class="badge" style="top:2px; left:16px; z-index:41;">2</span>
+      <span class="more-hint">&rsaquo;</span>
+      <div class="tabrow">
+        <div class="tab active">Upcoming <span class="count">3</span></div>
+        <div class="tab urgent">Needs you <span class="count">2</span></div>
+        <div class="tab">Never paid <span class="count">1</span></div>
+        <div class="tab">No time picked <span class="count">0</span></div>
+        <div class="tab">Closed <span class="count">5</span></div>
+        <div class="tab">All <span class="count">11</span></div>
+      </div>
+    </div>
+
+    <div class="list">
+
+      <div class="card warn">
+        <div class="card-top">
+          <div class="card-id">
+            <div class="nm">Priya Sharma <span class="chev-right">&rsaquo;</span></div>
+            <div class="ph">+91 98765 43210</div>
+            <div class="em">priya.sharma@gmail.com</div>
+          </div>
+          <span class="pill accent2">Not contacted</span>
+        </div>
+        <div class="needs-tag">&#9888; Needs a reply</div>
+        <div class="dots"><span class="done"></span><span class="done"></span><span class="now"></span><span></span></div>
+        <div class="hint-line warn">Next: they haven&#39;t paid yet</div>
+        <dl class="metagrid">
+          <dt>Call time</dt><dd>Not picked</dd>
+          <dt>Came in</dt><dd>2 hours ago</dd>
+        </dl>
+        <div class="bkid">Booking #482 &middot; Fat loss &middot; Beginner</div>
+        <div class="actions" style="position:relative;">
+          <span class="badge" style="top:-10px; right:-4px;">3</span>
+          <div class="btnwa-big"><span class="wa-ic">&#9743;</span>Message Priya on WhatsApp</div>
+          <div class="actions-row">
+            <div class="btn44">Close booking</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <div class="card-id">
+            <div class="nm">Arjun Rao <span class="chev-right">&rsaquo;</span></div>
+            <div class="ph">+91 90000 11122</div>
+            <div class="em">arjun.rao@outlook.com</div>
+          </div>
+          <span class="pill warn">Messaged 3h ago</span>
+        </div>
+        <div class="dots"><span class="done"></span><span class="done"></span><span class="done"></span><span class="now"></span></div>
+        <div class="stage-line">Call booked</div>
+        <dl class="metagrid">
+          <dt>Call time</dt><dd style="color:#f4f4f5;">Today, 6:00 PM</dd>
+          <dt>Came in</dt><dd>1 day ago</dd>
+        </dl>
+        <div class="bkid">Booking #479 &middot; Muscle gain &middot; Intermediate</div>
+        <div class="actions">
+          <div class="actions-row">
+            <div class="btn44"><span class="wa-ic">&#9743;</span>WhatsApp</div>
+            <div class="btn44">Close</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card muted">
+        <div class="card-top">
+          <div class="card-id">
+            <div class="nm">Meera Iyer <span class="chev-right">&rsaquo;</span></div>
+            <div class="ph">+91 93333 44556</div>
+          </div>
+          <span class="pill muted">Closed</span>
+        </div>
+        <div class="dots"><span class="done"></span><span class="done"></span><span class="done"></span><span class="done"></span></div>
+        <div class="stage-line" style="color:#a1a1aa;">Call done</div>
+        <dl class="metagrid">
+          <dt>Call time</dt><dd>Wed, 11:00 AM</dd>
+          <dt>Came in</dt><dd>9 days ago</dd>
+        </dl>
+        <div class="bkid">Booking #461 &middot; Recomp</div>
+        <div class="actions">
+          <div class="actions-row">
+            <div class="btn44"><span class="wa-ic">&#9743;</span>WhatsApp</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-note" style="position:relative;">
+      <span class="badge" style="top:-10px; right:24px;">4</span>
+      Tap any card &darr; opens the full-screen detail sheet below
+    </div>
+
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <span class="badge" style="top:-10px; left:-10px; z-index:60;">5</span>
+        <div class="drag"></div>
+        <div class="sheet-head">
+          <div class="sheet-close">&times;</div>
+          <h2>Priya Sharma</h2>
+          <p>Booking #482 &middot; You have not contacted them</p>
+        </div>
+
+        <div class="progress-full">
+          <div class="pstep"><div class="pdot done">&#10003;</div><div class="plabel">Form</div><div class="pnote">2h ago</div></div>
+          <div class="pstep"><div class="pdot done">&#10003;</div><div class="plabel">Paid</div><div class="pnote">2h ago</div></div>
+          <div class="pstep"><div class="pdot now">!</div><div class="plabel">Slot</div><div class="pnote">Waiting</div></div>
+          <div class="pstep"><div class="pdot pending">&middot;</div><div class="plabel">Call</div><div class="pnote">&mdash;</div></div>
+        </div>
+
+        <div class="next-box">
+          <div class="t">They haven&#39;t paid yet</div>
+          <div class="s">Nudge Priya to complete payment, or offer to help her pick a slot.</div>
+        </div>
+
+        <div class="sheet-actions">
+          <div class="btnwa-big"><span class="wa-ic">&#9743;</span>Message Priya on WhatsApp</div>
+          <div class="actions-row">
+            <div class="btn44">I called or emailed them</div>
+            <div class="btn44">Close this booking</div>
+          </div>
+        </div>
+
+        <div class="sheet-section">
+          <h3>Contact</h3>
+          <dl class="kv">
+            <dt>WhatsApp</dt><dd class="link">+91 98765 43210</dd>
+            <dt>Email</dt><dd class="link">priya.sharma@gmail.com</dd>
+            <dt>Wants</dt><dd>Fat loss &middot; Beginner</dd>
+          </dl>
+        </div>
+
+        <div class="sheet-section">
+          <h3>Consultation</h3>
+          <dl class="kv">
+            <dt>Call time</dt><dd>Not picked yet</dd>
+            <dt>Paid</dt><dd>&#8377;3,000 on 6 Aug, 4:12 PM</dd>
+          </dl>
+        </div>
+
+        <div class="sheet-section">
+          <h3>Confirmation messages we sent</h3>
+          <dl class="kv">
+            <dt>To you</dt><dd>Not sent</dd>
+            <dt>To Priya</dt><dd>Not sent</dd>
+          </dl>
+        </div>
+
+        <div class="disclosure">Payment and technical details &#9662;</div>
+      </div>
+    </div>
+
+    <div class="safe-bottom"></div>
+    <div class="gesture-bar"></div>
+  </div>
+</div>
+    
+  <div class="legend">
+    <h3>What changed vs. today, and why</h3>
+    <ol>
+      <li><span class="lnum">1</span><span>Menu button grows to 44&times;44 (was 40&times;40) &mdash; it's the only way into every other admin page, right next to the notch.</span></li>
+      <li><span class="lnum">2</span><span>Tabs get a full 44px tap row, plus a fade + scroll-snap so "more tabs off-screen" reads as a swipeable row, not a dead end.</span></li>
+      <li><span class="lnum">3</span><span>On a card that needs a reply, WhatsApp becomes a full-width 50px button &mdash; today it's a ~28px chip, the smallest target for the most urgent action.</span></li>
+      <li><span class="lnum">4</span><span>The whole card opens the detail sheet (chevron signals it) instead of a tiny "View" label &mdash; one of three ~28px buttons crowded into a row.</span></li>
+      <li><span class="lnum">5</span><span>The centered pop-up becomes a bottom sheet on phones: drag handle, 44&times;44 close button pinned top-right, action buttons sized the same 44&ndash;52px as the list.</span></li>
+    </ol>
+  </div>
+  </div>
+</div>
+</body></html>
