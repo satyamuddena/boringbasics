@@ -40,6 +40,8 @@ interface FormState {
   subscribe: boolean;
   /** Honeypot — must stay empty. */
   bot_check_xyz: string;
+  /** What the visitor typed for the CAPTCHA image. */
+  captchaAnswer: string;
 }
 
 const initial: FormState = {
@@ -52,6 +54,7 @@ const initial: FormState = {
   message: "",
   subscribe: false,
   bot_check_xyz: "",
+  captchaAnswer: "",
 };
 
 const goals: Goal[] = ["fat-loss", "muscle-gain", "recomp", "lifestyle"];
@@ -109,6 +112,10 @@ export function LeadForm({
   const [booked, setBooked] = useState(false);
   const [bookingError, setBookingError] = useState("");
 
+  /** The signed challenge currently on screen. Null until the first one lands. */
+  const [captcha, setCaptcha] = useState<{ token: string; image: string } | null>(null);
+  const [captchaLoading, setCaptchaLoading] = useState(true);
+
   const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
   // Pre-fill the goal when arriving from the program-finder quiz (/contact?goal=…).
@@ -119,6 +126,45 @@ export function LeadForm({
     setForm((f) => ({ ...f, goal: g as Goal }));
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
+
+  /**
+   * Fetches a challenge. Every setState here runs after the `await`, which is
+   * what keeps the mount effect below free of a synchronous state update.
+   */
+  const loadCaptcha = useCallback(async () => {
+    try {
+      const res = await fetch("/api/captcha", { cache: "no-store" });
+      const data = await res.json();
+      setCaptcha(data?.token && data?.image ? { token: data.token, image: data.image } : null);
+    } catch {
+      setCaptcha(null);
+    } finally {
+      setCaptchaLoading(false);
+    }
+  }, []);
+
+  /**
+   * Swaps in a new challenge. Also used after a rejected answer — the token is
+   * single-use, so whatever is on screen at that point is spent either way.
+   * Only ever called from an event handler, so setting state up front is fine.
+   */
+  const refreshCaptcha = useCallback(() => {
+    setCaptchaLoading(true);
+    setForm((f) => ({ ...f, captchaAnswer: "" }));
+    void loadCaptcha();
+  }, [loadCaptcha]);
+
+  /*
+    Fetch the first challenge on mount. This is the "subscribe to an external
+    system and setState in a callback" case the rule itself allows — every
+    update in loadCaptcha happens after the await, not in this body — but the
+    lint is static and only sees setState reachable from the call, so it has to
+    be silenced here the same way the goal prefill above does.
+  */
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    void loadCaptcha();
+  }, [loadCaptcha]);
 
   /* ---------------- validation ---------------- */
   const goalError = form.goal === "" ? "Please pick a goal." : "";
@@ -131,7 +177,9 @@ export function LeadForm({
         ? ""
         : "Enter a valid mobile number for the selected country.";
   const emailError = EMAIL_RE.test(form.email.trim()) ? "" : "Please enter a valid email address.";
-  const detailsValid = !goalError && !nameError && !whatsappError && !emailError;
+  const captchaError = form.captchaAnswer.trim() === "" ? "Please enter the characters shown." : "";
+  const detailsValid =
+    !goalError && !nameError && !whatsappError && !emailError && !captchaError;
 
   const fullWhatsapp = phoneToE164(phoneValue) ?? "";
   const priceLabel = `${consultation.currency === "INR" ? "₹" : ""}${consultation.price.toLocaleString("en-IN")}`;
@@ -168,11 +216,15 @@ export function LeadForm({
           ...form,
           whatsapp: fullWhatsapp,
           email: form.email.trim(),
+          captchaToken: captcha?.token ?? "",
           source: getSourceMeta(),
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.bookingId) {
+        // A spent or wrong token can never be retried, so put a new image up
+        // before the visitor reads the message and tries again.
+        if (data.captchaFailed) void refreshCaptcha();
         throw new Error(data.error || "Something went wrong. Please try again.");
       }
       setBookingId(data.bookingId);
@@ -433,6 +485,73 @@ export function LeadForm({
                   above. Unsubscribe anytime with one click.
                 </span>
               </label>
+
+              <FieldGroup label="Security check" htmlFor="captcha-answer" required>
+                <p className="mb-2 text-xs text-muted">
+                  Type the characters shown. This keeps automated spam out of the booking
+                  queue.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex h-14 w-[170px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-ink">
+                    {captcha ? (
+                      // Server-rendered SVG as a data URI — the answer never
+                      // reaches the browser in readable form.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={captcha.image}
+                        alt="Security check — the characters to type below"
+                        width={170}
+                        height={56}
+                        className="h-14 w-[170px] object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs text-muted">
+                        {captchaLoading ? "Loading…" : "Unavailable"}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={refreshCaptcha}
+                    aria-label="Show a different security image"
+                    title="Show a different image"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-line text-muted transition-colors hover:border-accent hover:text-accent"
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                      className={captchaLoading ? "animate-spin" : undefined}
+                    >
+                      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                      <path d="M21 3v6h-6" />
+                    </svg>
+                  </button>
+                </div>
+                <input
+                  id="captcha-answer"
+                  value={form.captchaAnswer}
+                  onChange={(e) => update({ captchaAnswer: e.target.value })}
+                  className={`${inputCls(attempted && !!captchaError)} mt-3 uppercase tracking-[0.3em]`}
+                  placeholder="Enter the characters"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  maxLength={12}
+                  required
+                  aria-describedby="captcha-hint"
+                />
+                <span id="captcha-hint" className="sr-only">
+                  Not case sensitive. Use the New image button if it is hard to read.
+                </span>
+                <FieldError show={attempted} message={captchaError} />
+              </FieldGroup>
             </fieldset>
           )}
 
@@ -607,5 +726,37 @@ function Field({
       </span>
       {children}
     </label>
+  );
+}
+
+/**
+ * Same look as `Field`, but a `<div>` with an explicitly targeted `<label>`
+ * instead of one wrapping everything.
+ *
+ * `Field` is only correct around a single control. A `<label>` activates its
+ * first labelable descendant, and buttons are labelable — so wrapping a group
+ * that contains one means a click on any blank space inside the label presses
+ * that button. On the security check, which pairs an image and a refresh button
+ * with the input, that regenerated the challenge when the visitor clicked
+ * beside it. `htmlFor` points the caption at the field it actually names.
+ */
+function FieldGroup({
+  label,
+  htmlFor,
+  required,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={htmlFor} className="mb-2 block text-sm text-muted">
+        {label} {required && <span className="text-accent">*</span>}
+      </label>
+      {children}
+    </div>
   );
 }

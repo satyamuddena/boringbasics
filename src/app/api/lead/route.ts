@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isValidPhoneNumber } from "libphonenumber-js";
 import { getDb, schema as t } from "@/db";
 import { audit } from "@/lib/audit";
+import { captchaMessage, verifyCaptcha } from "@/lib/captcha";
 import { getTrainer } from "@/lib/content";
 import { sendMail } from "@/lib/mail";
 import { upsertSubscriber } from "@/lib/newsletter";
@@ -10,11 +11,11 @@ import { rateLimit } from "@/lib/rate-limit";
 /**
  * Consultation booking — step 1 (contact capture).
  *
- * Validates the submission, rejects bots via a honeypot, creates the booking
- * at stage `details` (so the trainer always has the client's WhatsApp + email,
- * even if they drop off before paying) and emails the trainer. Returns the
- * booking id so the client can proceed to payment. With `subscribe: true` the
- * sender also joins the newsletter.
+ * Validates the submission, rejects bots via a honeypot and a CAPTCHA, creates
+ * the booking at stage `details` (so the trainer always has the client's
+ * WhatsApp + email, even if they drop off before paying) and emails the
+ * trainer. Returns the booking id so the client can proceed to payment. With
+ * `subscribe: true` the sender also joins the newsletter.
  */
 
 interface LeadPayload {
@@ -35,6 +36,9 @@ interface LeadPayload {
     program?: string;
   };
   bot_check_xyz?: string; // honeypot
+  /** Signed challenge from /api/captcha, and what the visitor typed. */
+  captchaToken?: string;
+  captchaAnswer?: string;
 }
 
 function cleanMeta(value: unknown) {
@@ -60,6 +64,23 @@ export async function POST(request: Request) {
   // Honeypot: real users never fill this.
   if (body.bot_check_xyz && body.bot_check_xyz.trim() !== "") {
     return NextResponse.json({ ok: true }); // silently accept + drop
+  }
+
+  /*
+    The CAPTCHA is enforced here, not in the form. The browser check is only a
+    convenience — this route is a public endpoint that can be posted to
+    directly, so a submission without a valid, unspent token is refused before
+    anything is written or emailed.
+
+    `captchaFailed` is flagged separately so the client knows to swap in a fresh
+    image: a token is single-use, and the one it holds is now dead either way.
+  */
+  const captcha = verifyCaptcha(body.captchaToken, body.captchaAnswer);
+  if (!captcha.ok) {
+    return NextResponse.json(
+      { error: captchaMessage(captcha.reason), captchaFailed: true },
+      { status: 400 },
+    );
   }
 
   const name = (body.name || "").trim();
