@@ -18,6 +18,12 @@ const nextConfig: NextConfig = {
   },
   // Native addons — must not be bundled by Turbopack.
   serverExternalPackages: ["better-sqlite3", "sharp"],
+  /**
+   * Drops the `X-Powered-By: Next.js` response header. It advertises the
+   * framework to anyone scanning for stacks with known advisories and buys
+   * nothing in return.
+   */
+  poweredByHeader: false,
   async headers() {
     return [
       {

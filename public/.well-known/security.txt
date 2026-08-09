@@ -1,0 +1,17 @@
+# Boring Basics — security contact (RFC 9116)
+#
+# If you have found a security problem with this site, please email the address
+# below with enough detail to reproduce it, and give us a reasonable chance to
+# fix it before publishing.
+#
+# Please do not run automated scans, load tests, or anything that submits real
+# bookings or payments. This is a single small site and that traffic is
+# indistinguishable from an attack. Reading and reporting is welcome.
+#
+# Expires must stay in the future — an expired security.txt is treated as
+# unmaintained, which is worse than not publishing one. Renew it yearly.
+
+Contact: mailto:satya.muddena@gmail.com
+Expires: 2027-08-09T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://www.boringbasics.fit/.well-known/security.txt
