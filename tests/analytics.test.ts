@@ -4,6 +4,7 @@ import {
   analyticsWindow,
   bookingState,
   buildAnalyticsLifetimeSummary,
+  buildAnalyticsRevenueTrend,
   buildAnalyticsOperationsTrend,
   buildAnalyticsReport,
   buildAnalyticsTrendSummary,
@@ -210,6 +211,28 @@ test("operations trend defaults to three calendar months and counts event dates"
       { confirmedBookings: 1, paymentsReceived: 2, paidWithoutBooking: 2 },
     ],
   );
+});
+
+test("revenue trend defaults to the latest twelve calendar months", () => {
+  const trend = buildAnalyticsRevenueTrend([
+    lead({ id: 1, amountPaise: 399900, paidAt: "2025-09-05T04:30:00Z" }),
+    lead({ id: 2, amountPaise: 499900, paidAt: "2026-07-06T04:30:00Z" }),
+    lead({ id: 3, amountPaise: 399900, paidAt: "2026-08-01T04:30:00Z" }),
+  ], "1y", now);
+
+  assert.equal(trend.length, 12);
+  assert.equal(trend[0]?.label, "Sept 25");
+  assert.equal(trend[11]?.label, "Aug 26");
+  assert.equal(trend[0]?.revenuePaise, 399900);
+  assert.equal(trend[10]?.revenuePaise, 499900);
+  assert.equal(trend[11]?.revenuePaise, 399900);
+  assert.equal(trend[11]?.end.toISOString(), now.toISOString());
+});
+
+test("revenue trend follows its selected range", () => {
+  assert.equal(buildAnalyticsRevenueTrend([], "1w", now).length, 7);
+  assert.equal(buildAnalyticsRevenueTrend([], "15d", now)[0]?.label, "29 Jul");
+  assert.equal(buildAnalyticsRevenueTrend([], "3y", now)[0]?.label, "2024");
 });
 
 test("15-day operations trend returns one IST calendar bucket per day", () => {

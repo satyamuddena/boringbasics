@@ -16,16 +16,17 @@ export type AnalyticsTrendRange =
 export const ANALYTICS_TREND_OPTIONS: Array<{
   value: AnalyticsTrendRange;
   label: string;
+  shortLabel: string;
 }> = [
-  { value: "1w", label: "1 week" },
-  { value: "15d", label: "15 days" },
-  { value: "1m", label: "1 month" },
-  { value: "3m", label: "3 months" },
-  { value: "6m", label: "6 months" },
-  { value: "1y", label: "1 year" },
-  { value: "3y", label: "3 years" },
-  { value: "5y", label: "5 years" },
-  { value: "10y", label: "10 years" },
+  { value: "1w", label: "1 week", shortLabel: "7D" },
+  { value: "15d", label: "15 days", shortLabel: "15D" },
+  { value: "1m", label: "1 month", shortLabel: "1M" },
+  { value: "3m", label: "3 months", shortLabel: "3M" },
+  { value: "6m", label: "6 months", shortLabel: "6M" },
+  { value: "1y", label: "1 year", shortLabel: "1Y" },
+  { value: "3y", label: "3 years", shortLabel: "3Y" },
+  { value: "5y", label: "5 years", shortLabel: "5Y" },
+  { value: "10y", label: "10 years", shortLabel: "10Y" },
 ];
 
 export interface AnalyticsLead {
@@ -114,6 +115,14 @@ export interface AnalyticsOperationsTrendBucket {
   confirmedBookings: number;
   paymentsReceived: number;
   paidWithoutBooking: number;
+}
+
+export interface AnalyticsMonthlyRevenueBucket {
+  key: string;
+  label: string;
+  start: Date;
+  end: Date;
+  revenuePaise: number;
 }
 
 export interface AnalyticsTrendSummary {
@@ -415,6 +424,17 @@ export function buildAnalyticsOperationsTrend(
       ).length,
     };
   });
+}
+
+export function buildAnalyticsRevenueTrend(
+  leads: AnalyticsLead[],
+  range: AnalyticsTrendRange = "1y",
+  now = new Date(),
+): AnalyticsMonthlyRevenueBucket[] {
+  return analyticsTrendWindows(range, now).map((window) => ({
+    ...window,
+    revenuePaise: sumsForWindow(leads, window.start, window.end).revenuePaise,
+  }));
 }
 
 function analyticsTrendWindows(

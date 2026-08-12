@@ -6,6 +6,7 @@ import { getDb, schema as t } from "@/db";
 import {
   ANALYTICS_TREND_OPTIONS,
   buildAnalyticsLifetimeSummary,
+  buildAnalyticsRevenueTrend,
   buildAnalyticsOperationsTrend,
   buildAnalyticsTrendSummary,
   normalizeAnalyticsTrendRange,
@@ -55,8 +56,14 @@ function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function href(trend: AnalyticsTrendRange) {
-  const params = new URLSearchParams({ trend });
+function href({
+  trend,
+  revenueTrend,
+}: {
+  trend: AnalyticsTrendRange;
+  revenueTrend: AnalyticsTrendRange;
+}) {
+  const params = new URLSearchParams({ trend, revenueTrend });
   return `/admin/analytics?${params}`;
 }
 
@@ -157,6 +164,54 @@ function OperationsTrendChart({
   );
 }
 
+function MonthlyRevenueTrendChart({
+  buckets,
+}: {
+  buckets: ReturnType<typeof buildAnalyticsRevenueTrend>;
+}) {
+  const maxRevenue = Math.max(...buckets.map((bucket) => bucket.revenuePaise), 1);
+  const minWidth = Math.max(720, buckets.length * 70);
+
+  return (
+    <div className="overflow-x-auto pb-1">
+      <div
+        className="grid h-64 items-end gap-3 border-b border-line px-2 pt-8"
+        style={{ gridTemplateColumns: `repeat(${buckets.length}, minmax(50px, 1fr))`, minWidth }}
+        role="img"
+        aria-label="Collected revenue over the selected range"
+      >
+        {buckets.map((bucket) => {
+          const height = bucket.revenuePaise === 0
+            ? 0
+            : Math.max(5, (bucket.revenuePaise / maxRevenue) * 100);
+          return (
+            <div key={bucket.key} className="grid h-full grid-rows-[1fr_auto] gap-2">
+              <div className="relative flex h-full items-end justify-center">
+                <span
+                  className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-muted"
+                  style={{ bottom: `calc(${height}% + 4px)` }}
+                >
+                  {formatMoney(bucket.revenuePaise)}
+                </span>
+                <span
+                  className="w-8 rounded-t-lg bg-accent/80"
+                  style={{ height: `${height}%` }}
+                  aria-label={`${bucket.label}: ${formatMoney(bucket.revenuePaise)} collected`}
+                />
+              </div>
+              <p className="pb-2 text-center text-[11px] text-muted">{bucket.label}</p>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 flex items-center gap-1.5 text-xs text-muted">
+        <span className="h-2 w-2 rounded-sm bg-accent" />
+        Collected revenue
+      </div>
+    </div>
+  );
+}
+
 function StateCards({
   summary,
 }: {
@@ -192,12 +247,14 @@ export default async function AnalyticsPage({
 }) {
   const query = await searchParams;
   const trendRange = normalizeAnalyticsTrendRange(one(query.trend));
+  const revenueTrendRange = normalizeAnalyticsTrendRange(one(query.revenueTrend) ?? "1y");
 
   const now = new Date();
   const db = getDb();
   const leads = db.select().from(t.leads).orderBy(desc(t.leads.id)).all();
   const lifetime = buildAnalyticsLifetimeSummary(leads, now);
   const operationsTrend = buildAnalyticsOperationsTrend(leads, trendRange, now);
+  const revenueTrend = buildAnalyticsRevenueTrend(leads, revenueTrendRange, now);
   const trendSummary = buildAnalyticsTrendSummary(leads, trendRange, now);
 
   return (
@@ -255,19 +312,41 @@ export default async function AnalyticsPage({
               {ANALYTICS_TREND_OPTIONS.map((option) => (
                 <Link
                   key={option.value}
-                  href={href(option.value)}
+                  href={href({ trend: option.value, revenueTrend: revenueTrendRange })}
                   aria-current={trendRange === option.value ? "page" : undefined}
                   scroll={false}
                   className={`flex-none whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                     trendRange === option.value ? "bg-accent text-ink" : "text-muted hover:text-fg"
                   }`}
                 >
-                  {option.label}
+                  {option.shortLabel}
                 </Link>
               ))}
             </div>
           </div>
           <OperationsTrendChart buckets={operationsTrend} />
+        </AdminCard>
+
+        <AdminCard title="Revenue trend" className="min-w-0">
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <p className="text-xs text-muted">Collected INR over the selected range.</p>
+            <div className="flex max-w-full flex-wrap gap-1 rounded-lg border border-line bg-ink p-1" aria-label="Revenue trend period">
+              {ANALYTICS_TREND_OPTIONS.map((option) => (
+                <Link
+                  key={option.value}
+                  href={href({ trend: trendRange, revenueTrend: option.value })}
+                  aria-current={revenueTrendRange === option.value ? "page" : undefined}
+                  scroll={false}
+                  className={`flex-none whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    revenueTrendRange === option.value ? "bg-accent text-ink" : "text-muted hover:text-fg"
+                  }`}
+                >
+                  {option.shortLabel}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <MonthlyRevenueTrendChart buckets={revenueTrend} />
         </AdminCard>
 
         <section>
