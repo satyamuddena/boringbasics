@@ -32,6 +32,7 @@ const navSections: NavSection[] = [
     label: "Operations",
     items: [
       { label: "Bookings", href: "/admin/leads", icon: "bookings" },
+      { label: "Analytics", href: "/admin/analytics", icon: "analytics" },
       // One entry fronting the three test pages, which share a tab bar.
       {
         label: "Diagnostics",
