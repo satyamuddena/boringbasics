@@ -116,6 +116,20 @@ export interface AnalyticsOperationsTrendBucket {
   paidWithoutBooking: number;
 }
 
+export interface AnalyticsTrendSummary {
+  label: string;
+  start: Date;
+  end: Date;
+  revenuePaise: number;
+  payments: number;
+  averagePaymentPaise: number;
+  scheduledRevenuePaise: number;
+  awaitingTimeRevenuePaise: number;
+  states: Record<BookingState, number>;
+  cohortTotal: number;
+  needsFollowup: number;
+}
+
 const IST_OFFSET_MS = 330 * 60 * 1000;
 
 function istDate(
@@ -380,6 +394,33 @@ export function buildAnalyticsOperationsTrend(
   range: AnalyticsTrendRange = "3m",
   now = new Date(),
 ): AnalyticsOperationsTrendBucket[] {
+  const windows = analyticsTrendWindows(range, now);
+
+  return windows.map((window) => {
+    const confirmedBookings = leads.filter(
+      (lead) =>
+        hasTime(lead) &&
+        lead.calendlyStatus !== "canceled" &&
+        inWindow(lead.bookedAt ?? lead.scheduledAt, window.start, window.end),
+    ).length;
+    const payments = leads.filter(
+      (lead) => isPaid(lead) && inWindow(lead.paidAt, window.start, window.end),
+    );
+    return {
+      ...window,
+      confirmedBookings,
+      paymentsReceived: payments.length,
+      paidWithoutBooking: payments.filter(
+        (lead) => !hasTime(lead) || lead.calendlyStatus === "canceled",
+      ).length,
+    };
+  });
+}
+
+function analyticsTrendWindows(
+  range: AnalyticsTrendRange,
+  now: Date,
+) {
   const current = istParts(now);
   const config: Record<
     AnalyticsTrendRange,
@@ -396,7 +437,7 @@ export function buildAnalyticsOperationsTrend(
     "10y": { unit: "year", count: 10 },
   };
   const selected = config[range];
-  const windows = selected.unit === "day"
+  return selected.unit === "day"
     ? Array.from({ length: selected.count }, (_, index) => {
         const daysAgo = selected.count - 1 - index;
         const start = istDate(current.year, current.month, current.day - daysAgo);
@@ -439,26 +480,44 @@ export function buildAnalyticsOperationsTrend(
           end: new Date(Math.min(naturalEnd.getTime(), now.getTime())),
         };
       });
+}
 
-  return windows.map((window) => {
-    const confirmedBookings = leads.filter(
-      (lead) =>
-        hasTime(lead) &&
-        lead.calendlyStatus !== "canceled" &&
-        inWindow(lead.bookedAt ?? lead.scheduledAt, window.start, window.end),
-    ).length;
-    const payments = leads.filter(
-      (lead) => isPaid(lead) && inWindow(lead.paidAt, window.start, window.end),
-    );
-    return {
-      ...window,
-      confirmedBookings,
-      paymentsReceived: payments.length,
-      paidWithoutBooking: payments.filter(
-        (lead) => !hasTime(lead) || lead.calendlyStatus === "canceled",
-      ).length,
-    };
-  });
+export function buildAnalyticsTrendSummary(
+  leads: AnalyticsLead[],
+  range: AnalyticsTrendRange = "3m",
+  now = new Date(),
+): AnalyticsTrendSummary {
+  const windows = analyticsTrendWindows(range, now);
+  const start = windows[0].start;
+  const end = windows[windows.length - 1].end;
+  const current = sumsForWindow(leads, start, end);
+  const cohort = cohortForWindow(leads, start, end);
+  const states: Record<BookingState, number> = {
+    upcoming: 0,
+    unpaid: 0,
+    notime: 0,
+    closed: 0,
+  };
+  for (const lead of cohort) states[bookingState(lead, now)] += 1;
+
+  const scheduledRevenuePaise = current.paid.reduce(
+    (sum, lead) => sum + (hasTime(lead) && lead.calendlyStatus !== "canceled" ? paymentAmount(lead) : 0),
+    0,
+  );
+
+  return {
+    label: ANALYTICS_TREND_OPTIONS.find((option) => option.value === range)?.label ?? "3 months",
+    start,
+    end,
+    revenuePaise: current.revenuePaise,
+    payments: current.paid.length,
+    averagePaymentPaise: current.averagePaymentPaise,
+    scheduledRevenuePaise,
+    awaitingTimeRevenuePaise: current.revenuePaise - scheduledRevenuePaise,
+    states,
+    cohortTotal: cohort.length,
+    needsFollowup: cohort.filter((lead) => bookingProgress(lead, now.getTime()).needsFollowup).length,
+  };
 }
 
 export function buildAnalyticsReport(

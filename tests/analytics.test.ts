@@ -6,6 +6,7 @@ import {
   buildAnalyticsLifetimeSummary,
   buildAnalyticsOperationsTrend,
   buildAnalyticsReport,
+  buildAnalyticsTrendSummary,
   normalizeAnalyticsTrendRange,
   type AnalyticsLead,
 } from "../src/lib/analytics";
@@ -240,4 +241,38 @@ test("all requested operations trend ranges have the expected bucket count", () 
   assert.equal(buildAnalyticsOperationsTrend([], "10y", now)[0]?.label, "2017");
   assert.equal(normalizeAnalyticsTrendRange("6m"), "6m");
   assert.equal(normalizeAnalyticsTrendRange("unknown"), "3m");
+});
+
+test("rolling summary uses the same selected range as the trend", () => {
+  const leads = [
+    lead({
+      id: 1,
+      createdAt: "2026-08-05T04:30:00Z",
+      stage: "paid",
+      amountPaise: 399900,
+      paidAt: "2026-08-05T04:30:00Z",
+    }),
+    lead({
+      id: 2,
+      createdAt: "2026-08-10T04:30:00Z",
+      stage: "booked",
+      amountPaise: 499900,
+      paidAt: "2026-08-10T04:30:00Z",
+      bookedAt: "2026-08-10T05:30:00Z",
+      scheduledAt: "2026-08-15T10:30:00Z",
+      calendlyStatus: "active",
+    }),
+  ];
+
+  const week = buildAnalyticsTrendSummary(leads, "1w", now);
+  assert.equal(week.label, "1 week");
+  assert.equal(week.revenuePaise, 499900);
+  assert.equal(week.payments, 1);
+  assert.equal(week.scheduledRevenuePaise, 499900);
+  assert.equal(week.awaitingTimeRevenuePaise, 0);
+  assert.equal(week.cohortTotal, 1);
+
+  const fifteenDays = buildAnalyticsTrendSummary(leads, "15d", now);
+  assert.equal(fifteenDays.label, "15 days");
+  assert.equal(fifteenDays.revenuePaise, 899800);
 });
